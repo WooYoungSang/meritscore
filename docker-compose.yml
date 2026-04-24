@@ -1,0 +1,22 @@
+services:
+  meritscore:
+    build: .
+    container_name: meritscore
+    ports:
+      - "61234:61234"
+    env_file:
+      - .env
+    environment:
+      MOCK_MODE: ${MOCK_MODE:-true}
+      RPC_GALILEO: ${RPC_GALILEO:-https://evmrpc-testnet.0g.ai}
+      RPC_BASE_SEPOLIA: ${RPC_BASE_SEPOLIA:-https://sepolia.base.org}
+    restart: unless-stopped
+    networks:
+      - meritscore-net
+
+networks:
+  meritscore-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.99.0.0/24

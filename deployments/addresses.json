@@ -1,0 +1,37 @@
+{
+  "MeritCore": {
+    "chain": "0G Galileo",
+    "chainId": 16602,
+    "address": "0x19E3C17F58052Bb75D1c24bC1c56C2bfd1E5A906",
+    "txHash": "0xd2e0c82e8182734ce95ff89965778dd3e44c4555142f484bf795820343875ed2",
+    "deployer": "0x0bb64a3ec3B1c3Fc818A384D580Cc7E61f4c352E"
+  },
+  "MeritVault": {
+    "chain": "Base Sepolia",
+    "chainId": 84532,
+    "address": "0x3ef2818dD26F4B2e73D8fAb65F6aEA6bc1A2F5E2",
+    "txHash": "0xea728adc08c3ed73b0809ef8c1425bd296927c1f3261f353735afe2d272b5577",
+    "deployer": "0x0bb64a3ec3B1c3Fc818A384D580Cc7E61f4c352E"
+  },
+  "EvidenceRegistry": {
+    "chain": "0G Galileo",
+    "chainId": 16602,
+    "address": "0x4DE88763BfcBd799376c4715c245F656D518e43B",
+    "txHash": "0x8e36b1f105f796d0cfbac78eb6dbcd82591ac941b3f51758f305a1606a01b6da",
+    "deployer": "0x0bb64a3ec3B1c3Fc818A384D580Cc7E61f4c352E"
+  },
+  "cp4_oracle": {
+    "alice":  { "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", "score_1e4": 2641 },
+    "bob":    { "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", "score_1e4": 6703 },
+    "carol":  { "address": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC", "score_1e4": 0    },
+    "batchSetMerit_tx": "0x132496633f457fecdabfe7faa8545b55975926a38e841f58d971e975d3348760",
+    "commitOracle_tx":  "0xd492f5714656eb1199c307c1c67902906a0f946a9113f697e25f05a8e4917b61",
+    "oracle_commit_hash": "0x09d34df4fd5c9c75b9970e4fbe0820c2b982466532d5413e1ae3b75fe7a1b4c1"
+  },
+  "cp5_evidence": {
+    "storage_root": "0x7efda42b6e92d9faa23964b2b8f954ba46defe0893ea200c524001cd998aa109",
+    "anchor_tx": "0x5feb7bc4d3c7c0dbf64726f0cca751fda4735378fa80cf78af42316b8ef6394e",
+    "label": "proof-of-merit:merit-allocation-v1",
+    "note": "0G Storage testnet infra down — hash computed from merit evidence, anchored in EvidenceRegistry"
+  }
+}

@@ -1,0 +1,5 @@
+[profile.default]
+src = "contracts/src"
+out = "contracts/out"
+cache_path = "contracts/cache"
+libs = ["lib"]

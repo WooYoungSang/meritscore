@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "meritscore"
+version = "0.1.0"
+description = "Proof-of-Merit — on-chain credit scores for AI agents"
+authors = []
+packages = [
+    { include = "merit_scorer", from = "python" },
+    { include = "bff", from = "python" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "0.104.1"
+uvicorn = { extras = ["standard"], version = "0.24.0" }
+web3 = "7.14.0"
+python-dotenv = "1.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "7.4.3"
+httpx = ">=0.23.0,<0.27.0"
+ruff = "0.1.8"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["python/tests"]
+pythonpath = ["python"]
