@@ -41,9 +41,13 @@ MeritScore solves this with **on-chain agent credit scoring**: a decentralized r
 - Classifies agent behavior: `honest / mev_searcher / sandwich_attacker`
 - Feeds classification to merit oracle
 
-**Sword #1: Recovery Path** *(in progress)*
-- Appeals / score dispute mechanism
-- Planned for future iterations
+**Sword #1: Live Evaluation Button**
+- Interactive UI for real-time merit scoring (wallet input field)
+- Displays agent merit scores with AI-powered analysis card
+- Supports named aliases (Alice/Bob/Carol) or arbitrary wallet addresses
+- Live demo at `https://meritscore.warvis.org` (port 61234, Docker)
+- Endpoints: `/merit/{address}` (lookup) + `/analyze` (AI classification)
+- Status: ✅ **DONE** (Docker validated, all API endpoints tested)
 
 ---
 
