@@ -57,14 +57,19 @@ def _invoke_0g_compute() -> tuple[str, bool]:
         client = A0G(private_key=OG_PRIVATE_KEY, network="testnet")
         logger.info("0G client init: account=%s", client.account.address)
 
-        # Check ledger exists (MIN_ACCOUNT_BALANCE = 0.1 A0GI required)
-        ledger = client.get_ledger()
-        if ledger is None:
+        # Check ledger exists via raw contract call (SDK get_ledger() has ABI mismatch)
+        try:
+            raw = client.ledger_contract.functions.getLedger(client.account.address).call()
+            available_balance = raw[1] if len(raw) > 1 else 0
+            if available_balance == 0:
+                raise ValueError("zero balance")
+            logger.info("Ledger OK — available=%.4f A0GI", available_balance / 1e18)
+        except Exception as exc:
             balance = float(client.get_balance())
             logger.warning(
-                "0G Compute ledger not created — need 0.1 A0GI, have %.4f. "
-                "Run addLedger() after topping up via faucet. Using mock.",
-                balance,
+                "0G Compute ledger not ready (%s) — have %.4f A0GI. "
+                "Run scripts/setup_0g_ledger.py to create ledger. Using mock.",
+                exc, balance,
             )
             return _mock_compute_hash(), False
 
