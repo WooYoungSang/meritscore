@@ -94,7 +94,7 @@ Obsidian (SSoT)  ←→  warvis-mcp (인덱스)  ←→  로컬 코드
 
 | # | Sword | Status |
 |:-:|-------|:------:|
-| 1 | Live Evaluation Button | ⬜ D3 AM 예정 |
+| 1 | Live Evaluation Button | ✅ DONE |
 | 2 | TEE Attestation Card | ✅ DONE |
 | 3 | KH 3-Step Workflow + Log | ✅ DONE |
 | 4 | AI Enriches Formula | ✅ DONE |
