@@ -322,10 +322,141 @@ function WorkflowTab({ agentMeta }) {
   );
 }
 
+// ---------- Live Eval Tab (Sword #1 + #4) ----------
+function LiveEvalTab() {
+  const [addr, setAddr] = useState("");
+  const [running, setRunning] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [result, setResult] = useState(null);
+  const [phase, setPhase] = useState("idle"); // idle | running | reveal | done
+  const timerRef = useRef(null);
+
+  const startTimer = () => {
+    const t0 = Date.now();
+    timerRef.current = setInterval(() => setElapsed(((Date.now() - t0) / 1000).toFixed(1)), 100);
+  };
+  const stopTimer = () => { clearInterval(timerRef.current); timerRef.current = null; };
+
+  const evaluate = async () => {
+    if (!addr.trim() || running) return;
+    setRunning(true); setResult(null); setPhase("running"); setElapsed(0);
+    startTimer();
+    try {
+      const [meritData, analyzeData] = await Promise.all([
+        fetch(`${BFF}/merit/${addr.trim()}`).then(r => r.json()).catch(() => null),
+        fetch(`${BFF}/analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: addr.trim(), tx_history: [] }),
+        }).then(r => r.json()).catch(() => null),
+      ]);
+      stopTimer();
+      setResult({ merit: meritData, analyze: analyzeData });
+      setPhase("reveal");
+      setTimeout(() => setPhase("done"), 1200);
+    } catch {
+      stopTimer(); setPhase("idle");
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const score = result?.merit?.score ?? 0;
+  const verdict = result?.merit?.exists === false && score === 0 ? "blocked" : verdictFor(score);
+  const animScore = useAnimatedNumber(phase === "done" || phase === "reveal" ? score : 0, 1100);
+  const gaming = result?.analyze?.gaming_detected;
+  const reason = result?.analyze?.reason;
+
+  const statusMsg = (s) => {
+    const t = parseFloat(s);
+    if (t < 1.5) return "Resolving on-chain identity…";
+    if (t < 3.5) return "Running AI sandwich analysis…";
+    if (t < 6) return "Verifying TEE attestation…";
+    return "Finalising merit score…";
+  };
+
+  return (
+    <div className="live-eval-wrap">
+      <div className="live-eval-input-row">
+        <input
+          type="text"
+          className="live-eval-input mono"
+          placeholder="0x… wallet address  —  or try: alice / bob / carol"
+          value={addr}
+          onChange={e => setAddr(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && evaluate()}
+          disabled={running}
+          spellCheck={false}
+        />
+        <button className={`eval-btn${running ? " running" : ""}`} onClick={evaluate} disabled={running}>
+          {running
+            ? <><span className="spinner" /><span>EVALUATING…</span></>
+            : "▶  EVALUATE"}
+        </button>
+      </div>
+
+      {phase === "running" && (
+        <div className="eval-progress">
+          <div className="eval-progress-bar" style={{ "--pct": `${Math.min(97, elapsed * 10)}%` }} />
+          <div className="eval-status">
+            <span className="mono" style={{ color: "var(--accent)" }}>⏱ {elapsed}s</span>
+            <span style={{ color: "var(--text-dim)" }}>{statusMsg(elapsed)}</span>
+          </div>
+        </div>
+      )}
+
+      {(phase === "reveal" || phase === "done") && result && (
+        <div className={`eval-result${phase === "reveal" ? " flash" : ""}`}>
+          <div className="eval-score-ring-wrap">
+            <div className={`eval-verdict-flash ${verdict}`}>
+              {verdict === "approved" ? "✅ APPROVED" : verdict === "rejected" ? "❌ REJECTED" : "⏸ BLOCKED"}
+            </div>
+            <div className={`eval-score-big mono ${verdict}`}>{animScore.toFixed(4)}</div>
+            <div className="eval-score-label">Merit Score</div>
+            <div className="mono" style={{ color: "var(--text-mute)", fontSize: "0.72rem", marginTop: 4 }}>
+              evaluated in {elapsed}s
+            </div>
+          </div>
+
+          <div className="eval-ai-result">
+            <div className="eval-ai-title">
+              <span style={{ color: "var(--accent)", fontWeight: 600 }}>AI Analysis</span>
+              <span className="sword">SWORD #4</span>
+            </div>
+            {result.analyze ? (
+              <>
+                <div className={`eval-ai-badge ${gaming ? "danger" : "safe"}`}>
+                  {gaming ? "⚠ Sandwich pattern detected" : "✓ No gaming pattern found"}
+                </div>
+                {reason && <div className="eval-ai-reason">{reason}</div>}
+                <div className="mono" style={{ color: "var(--text-mute)", fontSize: "0.7rem", marginTop: 8 }}>
+                  merit_penalty: {result.analyze.merit_penalty ?? 0} · mode: {result.analyze.mode}
+                </div>
+              </>
+            ) : (
+              <div style={{ color: "var(--text-mute)", fontSize: "0.82rem" }}>AI analysis unavailable</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {phase === "idle" && (
+        <div className="eval-idle">
+          <div style={{ color: "var(--text-mute)", fontSize: "0.85rem", lineHeight: 1.6 }}>
+            Enter any wallet address to run a live merit evaluation.<br />
+            Try <code className="mono">alice</code>, <code className="mono">bob</code>, or{" "}
+            <code className="mono">carol</code> for demo agents.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------- App ----------
 function App() {
   const [selectedId, setSelectedId] = useState("bob");
-  const [tab, setTab] = useState("tee");
+  const [tab, setTab] = useState("live");
   const [scores, setScores] = useState({});
   const [attestation, setAttestation] = useState(null);
   const [chain, setChain] = useState({ galileo: null, base: null });
@@ -393,6 +524,9 @@ function App() {
 
       <div className="tabs-wrap">
         <div className="tabs-bar">
+          <button className={`tab-btn ${tab === "live" ? "active" : ""}`} onClick={() => setTab("live")}>
+            ⚡ Live Eval <span className="sword">SWORD #1</span>
+          </button>
           <button className={`tab-btn ${tab === "tee" ? "active" : ""}`} onClick={() => setTab("tee")}>
             🔐 TEE Attestation <span className="sword">SWORD #2</span>
           </button>
@@ -401,9 +535,9 @@ function App() {
           </button>
         </div>
         <div className="tab-body">
-          {tab === "tee"
-            ? <TEETab attestation={attestation} />
-            : <WorkflowTab agentMeta={selected} />}
+          {tab === "live" ? <LiveEvalTab /> :
+           tab === "tee" ? <TEETab attestation={attestation} /> :
+           <WorkflowTab agentMeta={selected} />}
         </div>
       </div>
 
