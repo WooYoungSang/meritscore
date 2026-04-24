@@ -22,9 +22,15 @@ def detect_sandwich(address: str, tx_history: list) -> Tuple[bool, str]:
     if not isinstance(tx_history, list):
         return False, "Transaction history must be a list"
 
-    # Simple heuristic: count transactions
-    # In real scenario, would group by block
-    if len(tx_history) >= 2:
-        return True, "Multiple transactions detected - potential sandwich pattern"
+    # Detect explicit sandwich keywords
+    text = " ".join(str(tx) for tx in tx_history).lower()
+    if "frontrun" in text and "backrun" in text:
+        return True, "Sandwich pattern detected: frontrun/backrun pair found in transaction history"
 
-    return False, "Single transaction - no sandwich detected"
+    # Detect same-block buy-sell pairs (block number repeated)
+    import re
+    blocks = re.findall(r"block\s+(\d+)", text)
+    if len(blocks) != len(set(blocks)):
+        return True, "Multiple transactions in the same block detected — likely sandwich attack"
+
+    return False, "No sandwich pattern detected in transaction history"

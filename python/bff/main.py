@@ -87,6 +87,44 @@ _AGENT_ALIASES = {
     "carol": {"address": "0xca401ca401ca401ca401ca401ca401ca401ca401", "score": 0.0000, "mode": "Web3"},
 }
 
+# Demo tx history for known agents — injected when tx_history not provided
+_DEMO_TX_HISTORY = {
+    "alice": [
+        "swap USDC→ETH 0.5 ETH at 2024-01-15T10:23:01Z",
+        "swap ETH→USDC 0.3 ETH at 2024-01-16T14:05:44Z",
+    ],
+    "0xa11cea1a11cea1a11cea1a11cea1a11cea1a11ce": [
+        "swap USDC→ETH 0.5 ETH at 2024-01-15T10:23:01Z",
+        "swap ETH→USDC 0.3 ETH at 2024-01-16T14:05:44Z",
+    ],
+    "bob": [
+        "addLiquidity USDC/ETH 1000 USDC at 2024-02-01T09:00:00Z",
+        "removeLiquidity USDC/ETH 500 USDC at 2024-02-10T11:30:00Z",
+        "swap WBTC→ETH 0.1 BTC at 2024-02-15T16:45:00Z",
+    ],
+    "0xb0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0": [
+        "addLiquidity USDC/ETH 1000 USDC at 2024-02-01T09:00:00Z",
+        "removeLiquidity USDC/ETH 500 USDC at 2024-02-10T11:30:00Z",
+        "swap WBTC→ETH 0.1 BTC at 2024-02-15T16:45:00Z",
+    ],
+    "carol": [
+        "frontrun swap ETH→USDC 2.0 ETH block 19234501 (gasPrice 120gwei)",
+        "target swap ETH→USDC 1.5 ETH block 19234501 (gasPrice 85gwei)",
+        "backrun swap USDC→ETH 2.0 ETH block 19234501 (gasPrice 120gwei)",
+        "frontrun swap ETH→DAI 3.0 ETH block 19301822 (gasPrice 150gwei)",
+        "target swap ETH→DAI 2.5 ETH block 19301822 (gasPrice 90gwei)",
+        "backrun swap DAI→ETH 3.0 ETH block 19301822 (gasPrice 150gwei)",
+    ],
+    "0xca401ca401ca401ca401ca401ca401ca401ca401": [
+        "frontrun swap ETH→USDC 2.0 ETH block 19234501 (gasPrice 120gwei)",
+        "target swap ETH→USDC 1.5 ETH block 19234501 (gasPrice 85gwei)",
+        "backrun swap USDC→ETH 2.0 ETH block 19234501 (gasPrice 120gwei)",
+        "frontrun swap ETH→DAI 3.0 ETH block 19301822 (gasPrice 150gwei)",
+        "target swap ETH→DAI 2.5 ETH block 19301822 (gasPrice 90gwei)",
+        "backrun swap DAI→ETH 3.0 ETH block 19301822 (gasPrice 150gwei)",
+    ],
+}
+
 
 @app.get("/merit/{address}")
 async def merit(address: str):
@@ -182,7 +220,7 @@ async def analyze(request_body: dict):
     """
     try:
         address = request_body.get("address")
-        tx_history = request_body.get("tx_history", [])
+        tx_history = request_body.get("tx_history") or _DEMO_TX_HISTORY.get(address, [])
 
         if not address:
             raise ValueError("Missing 'address' in request")
