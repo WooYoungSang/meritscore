@@ -14,10 +14,11 @@ RUN poetry config virtualenvs.create false \
 
 # Copy source
 COPY python/ ./python/
+COPY contracts/out/ ./contracts/out/
 
 ENV HOST=0.0.0.0
 ENV PORT=61234
-ENV MOCK_MODE=true
+ENV MOCK_MODE=false
 
 EXPOSE 61234
 

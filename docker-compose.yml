@@ -7,7 +7,7 @@ services:
     env_file:
       - .env
     environment:
-      MOCK_MODE: ${MOCK_MODE:-true}
+      MOCK_MODE: ${MOCK_MODE:-false}
       RPC_GALILEO: ${RPC_GALILEO:-https://evmrpc-testnet.0g.ai}
       RPC_BASE_SEPOLIA: ${RPC_BASE_SEPOLIA:-https://sepolia.base.org}
     restart: unless-stopped
