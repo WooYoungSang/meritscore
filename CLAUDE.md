@@ -20,7 +20,9 @@ It pins the agent manifest at install time; update via `devos_harness_propagate`
 
 ```
 HACKATHON_START      = 2026-04-24 14:00 KST
-SUBMISSION_DEADLINE  = 2026-05-04 01:00 KST
+CHECK_IN_1_DEADLINE  = 2026-04-28 12:59 KST   ← D+3 (4/27 11:59pm ET)
+CHECK_IN_2_DEADLINE  = 2026-05-01 12:59 KST   ← D+7 (4/30 11:59pm ET)
+SUBMISSION_DEADLINE  = 2026-05-04 01:00 KST   ← D+10 (5/3 12pm ET)
 ALICE_MERIT          = 0.2641
 BOB_MERIT            = 0.6703
 CAROL_MERIT          = 0.0000
