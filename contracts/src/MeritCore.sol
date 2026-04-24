@@ -6,8 +6,8 @@ contract MeritCore {
     address public immutable owner;
 
     struct MeritEntry {
-        uint256 score;   // scaled 1e4 (e.g. 0.2641 → 2641)
-        bool    exists;
+        uint256 score; // scaled 1e4 (e.g. 0.2641 → 2641)
+        bool exists;
     }
 
     mapping(address => MeritEntry) public meritOf;
@@ -31,10 +31,7 @@ contract MeritCore {
         emit MeritSet(account, score);
     }
 
-    function batchSetMerit(
-        address[] calldata accounts,
-        uint256[] calldata scores
-    ) external onlyOwner {
+    function batchSetMerit(address[] calldata accounts, uint256[] calldata scores) external onlyOwner {
         require(accounts.length == scores.length, "length mismatch");
         for (uint256 i = 0; i < accounts.length; i++) {
             meritOf[accounts[i]] = MeritEntry(scores[i], true);

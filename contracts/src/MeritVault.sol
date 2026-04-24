@@ -42,14 +42,16 @@ contract MeritVault {
     /// EXECUTE — KeeperHub step 3: distribute ETH by merit weight
     function execute(
         address[] calldata accounts,
-        uint256[] calldata merits   // scaled 1e4
+        uint256[] calldata merits // scaled 1e4
     ) external onlyOwner {
         require(validated, "validate first");
         require(accounts.length == merits.length, "length mismatch");
 
         uint256 total = address(this).balance;
         uint256 sumMerit;
-        for (uint256 i = 0; i < merits.length; i++) sumMerit += merits[i];
+        for (uint256 i = 0; i < merits.length; i++) {
+            sumMerit += merits[i];
+        }
         require(sumMerit > 0, "no merit");
 
         uint256 distributed;

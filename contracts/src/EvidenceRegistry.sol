@@ -7,7 +7,7 @@ contract EvidenceRegistry {
 
     struct Evidence {
         bytes32 rootHash;
-        string  label;
+        string label;
         uint256 anchoredAt;
     }
 
