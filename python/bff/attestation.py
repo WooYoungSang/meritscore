@@ -1,163 +1,160 @@
-"""0G Compute Attestation Card (Sword #2)."""
+"""0G Compute Attestation Card (Sword #2).
 
-import os
+Real call flow (MOCK_MODE=false):
+  1. A0G(private_key, network='testnet') — connect to 0G Galileo
+  2. get_all_services() — enumerate TeeML chatbot providers
+  3. get_openai_client(provider.provider) — OpenAI-compatible endpoint
+  4. chat.completions.create(...) — TEE-attested inference
+  5. sha256(response) — compute_hash  |  EvidenceRegistry.latest() — storage_root
+"""
+
+from __future__ import annotations
+
 import asyncio
 import hashlib
 import logging
+import os
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load from environment
+# ── Config ─────────────────────────────────────────────────────────────────
 MOCK_MODE = os.getenv("MOCK_MODE", "true").lower() == "true"
 ORACLE_COMMIT_HASH = os.getenv(
     "ORACLE_COMMIT_HASH",
-    "0x09d34df4fd5c9c75b9970e4fbe0820c2b982466532d5413e1ae3b75fe7a1b4c1"
+    "0x09d34df4fd5c9c75b9970e4fbe0820c2b982466532d5413e1ae3b75fe7a1b4c1",
 )
 RPC_GALILEO = os.getenv("RPC_GALILEO", "https://evmrpc-testnet.0g.ai")
+OG_PRIVATE_KEY = os.getenv("OG_PRIVATE_KEY")
 
 
-def _generate_mock_hash() -> str:
-    """Generate a deterministic mock compute hash."""
-    base = "proof-of-merit-bff-attestation"
-    h = hashlib.sha256(base.encode()).hexdigest()
-    return "0x" + h
+# ── Mock helpers ────────────────────────────────────────────────────────────
+
+def _mock_compute_hash() -> str:
+    return "0x" + hashlib.sha256(b"proof-of-merit-bff-attestation").hexdigest()
 
 
-def _generate_mock_storage_root() -> str:
-    """Generate a deterministic mock storage root hash."""
-    base = "proof-of-merit-storage-root"
-    h = hashlib.sha256(base.encode()).hexdigest()
-    return "0x" + h
+def _mock_storage_root() -> str:
+    return "0x" + hashlib.sha256(b"proof-of-merit-storage-root").hexdigest()
+
+
+# ── Real 0G Compute call ───────────────────────────────────────────────────
+
+def _invoke_0g_compute() -> tuple[str, bool]:
+    """Try a real TeeML inference via 0G Compute SDK.
+
+    Returns:
+        (compute_hash, success)
+        compute_hash: sha256 of inference response content, 0x-prefixed
+        success: True if 0G call completed, False if fallback used
+    """
+    if not OG_PRIVATE_KEY:
+        logger.warning("OG_PRIVATE_KEY not set — using mock compute_hash")
+        return _mock_compute_hash(), False
+
+    try:
+        from a0g import A0G
+
+        client = A0G(private_key=OG_PRIVATE_KEY, network="testnet")
+        logger.info("0G client init: account=%s", client.account.address)
+
+        # Check ledger exists (MIN_ACCOUNT_BALANCE = 0.1 A0GI required)
+        ledger = client.get_ledger()
+        if ledger is None:
+            balance = float(client.get_balance())
+            logger.warning(
+                "0G Compute ledger not created — need 0.1 A0GI, have %.4f. "
+                "Run addLedger() after topping up via faucet. Using mock.",
+                balance,
+            )
+            return _mock_compute_hash(), False
+
+        # Find TeeML chatbot provider
+        services = client.get_all_services()
+        tee_provider = next(
+            (s for s in services if s.verifiability == "TeeML" and s.serviceType == "chatbot"),
+            None,
+        )
+        if tee_provider is None:
+            logger.warning("No TeeML chatbot service available — using mock")
+            return _mock_compute_hash(), False
+
+        logger.info("Using TeeML provider=%s model=%s", tee_provider.provider[:12], tee_provider.model)
+
+        # OpenAI-compatible inference against TeeML endpoint
+        oai = client.get_openai_client(tee_provider.provider)
+        resp = oai.chat.completions.create(
+            model=tee_provider.model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": (
+                        "You are a TEE attestation oracle. "
+                        "Respond with exactly one line: proof-of-merit-attestation-ok"
+                    ),
+                }
+            ],
+            max_tokens=32,
+        )
+        content = resp.choices[0].message.content or str(resp.id)
+        compute_hash = "0x" + hashlib.sha256(content.encode()).hexdigest()
+        logger.info("0G TeeML inference OK — compute_hash=%s…", compute_hash[:18])
+        return compute_hash, True
+
+    except Exception as exc:
+        logger.error("0G Compute call failed: %s — using mock", exc)
+        return _mock_compute_hash(), False
 
 
 async def _get_compute_hash_from_0g() -> tuple[str, bool]:
-    """
-    Call 0G Compute TeeML service to get attestation hash.
-
-    Returns:
-        (compute_hash, success) where success=True if 0G call succeeded, False if fallback used
-    """
-    def _invoke():
-        try:
-            from a0g import A0G
-
-            # Initialize 0G client
-            private_key = os.getenv("OG_PRIVATE_KEY")
-            if not private_key:
-                logger.warning("OG_PRIVATE_KEY not set, using fallback")
-                return _generate_mock_hash(), False
-
-            client = A0G(private_key=private_key, rpc_url=RPC_GALILEO)
-            logger.info("0G Compute client initialized")
-
-            # Get available services
-            services = client.get_all_services()
-            logger.info(f"Available 0G services: {len(services)} found")
-
-            # Find TeeML provider
-            tee_service = None
-            for service in services:
-                if "TeeML" in service.get("name", "") or "tee" in service.get("name", "").lower():
-                    tee_service = service
-                    break
-
-            if not tee_service:
-                logger.warning("No TeeML service found, using fallback")
-                return _generate_mock_hash(), False
-
-            logger.info(f"Using TeeML service: {tee_service.get('name')}")
-
-            # Invoke inference
-            prompt = "proof-of-merit-attestation-hash"
-            response = client.inference(
-                service_id=tee_service.get("id"),
-                model="deepseek-chat-v3-0324",
-                messages=[{"role": "user", "content": prompt}]
-            )
-
-            logger.info("0G Compute inference successful")
-
-            # Extract or compute attestation hash
-            if isinstance(response, dict):
-                attestation_hash = response.get("attestation_hash")
-                if attestation_hash:
-                    logger.info("Using attestation_hash from response")
-                    return attestation_hash, True
-
-                # Fallback: hash the response content
-                response_content = response.get("content", str(response))
-                h = hashlib.keccak256(response_content.encode()).hexdigest()
-                compute_hash = "0x" + h
-                logger.info(f"Computed compute_hash from response: {compute_hash[:16]}...")
-                return compute_hash, True
-            else:
-                response_str = str(response)
-                h = hashlib.keccak256(response_str.encode()).hexdigest()
-                compute_hash = "0x" + h
-                logger.info(f"Computed compute_hash from string response: {compute_hash[:16]}...")
-                return compute_hash, True
-
-        except ImportError:
-            logger.warning("a0g library not available, using fallback")
-            return _generate_mock_hash(), False
-        except Exception as e:
-            logger.error(f"0G Compute call failed: {e} — using fallback")
-            return _generate_mock_hash(), False
-
+    """Async wrapper around the sync 0G SDK call."""
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _invoke)
+    return await loop.run_in_executor(None, _invoke_0g_compute)
 
+
+# ── Public API ─────────────────────────────────────────────────────────────
 
 async def get_attestation_data() -> dict:
-    """
-    Get 0G Compute Attestation Card data.
+    """Get 0G Compute Attestation Card.
 
     AC1: Returns {compute_hash, storage_root, oracle_commit, mode}
-    AC2: MOCK_MODE=false triggers 0G Compute call with fallback to MOCK
-    AC3: oracle_commit = deployments/addresses.json cp4_oracle.oracle_commit_hash
-    AC4: storage_root = EvidenceRegistry.latest() on 0G Galileo
-    AC5: mode = "Workflow" if 0G call succeeded, "Direct" if MOCK fallback
+    AC2: MOCK_MODE=false → real 0G Compute call with graceful fallback
+    AC3: oracle_commit from ORACLE_COMMIT_HASH env / default
+    AC4: storage_root from EvidenceRegistry.latest() on 0G Galileo
+    AC5: mode="Workflow" if 0G succeeded, "Direct" if fallback
 
     Returns:
-        {compute_hash, storage_root, oracle_commit, mode}
+        dict with compute_hash, storage_root, oracle_commit, mode
     """
     from .chain import get_storage_root
 
     if MOCK_MODE:
-        # MOCK_MODE=true: generate mock hashes (backward compatible)
-        logger.info("MOCK_MODE=true: using generated hashes")
-        compute_hash = _generate_mock_hash()
-        storage_root = _generate_mock_storage_root()
-        oracle_commit = ORACLE_COMMIT_HASH
-        mode = "Workflow"  # Indicate workflow-capable even in mock
-    else:
-        # MOCK_MODE=false: real 0G Compute + EvidenceRegistry calls
-        logger.info("MOCK_MODE=false: invoking 0G Compute and EvidenceRegistry")
+        logger.info("MOCK_MODE=true — returning deterministic mock hashes")
+        return {
+            "compute_hash": _mock_compute_hash(),
+            "storage_root": _mock_storage_root(),
+            "oracle_commit": ORACLE_COMMIT_HASH,
+            "mode": "Workflow",
+        }
 
-        # AC5: Try 0G Compute, fallback to MOCK if fails
-        compute_hash, compute_ok = await _get_compute_hash_from_0g()
+    # MOCK_MODE=false: attempt real 0G calls
+    logger.info("MOCK_MODE=false — invoking 0G Compute + EvidenceRegistry")
 
-        # AC4: Fetch storage_root from EvidenceRegistry.latest()
-        try:
-            storage_root = await get_storage_root(RPC_GALILEO)
-            logger.info(f"EvidenceRegistry fetch succeeded: {storage_root[:16]}...")
-        except Exception as e:
-            logger.error(f"EvidenceRegistry fetch failed: {e} — using fallback")
-            storage_root = _generate_mock_storage_root()
-            compute_ok = False  # If storage_root fails, treat as fallback
+    compute_hash, compute_ok = await _get_compute_hash_from_0g()
 
-        # AC3: oracle_commit from environment or default
-        oracle_commit = ORACLE_COMMIT_HASH
+    try:
+        storage_root = await get_storage_root(RPC_GALILEO)
+        logger.info("EvidenceRegistry.latest() OK: %s…", storage_root[:18])
+    except Exception as exc:
+        logger.error("EvidenceRegistry fetch failed: %s — using mock storage_root", exc)
+        storage_root = _mock_storage_root()
+        compute_ok = False
 
-        # AC5: mode indicates success/fallback
-        mode = "Workflow" if compute_ok else "Direct"
-        logger.info(f"Attestation mode: {mode} (0G ok={compute_ok})")
+    mode = "Workflow" if compute_ok else "Direct"
+    logger.info("Attestation complete: mode=%s compute_ok=%s", mode, compute_ok)
 
     return {
         "compute_hash": compute_hash,
         "storage_root": storage_root,
-        "oracle_commit": oracle_commit,
+        "oracle_commit": ORACLE_COMMIT_HASH,
         "mode": mode,
     }
