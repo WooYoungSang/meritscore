@@ -56,15 +56,18 @@ Obsidian (SSoT)  ←→  warvis-mcp (인덱스)  ←→  로컬 코드
 - `project_id`: `warvis-hackerton`
 - 인덱싱 대상: Dashboard에 연결된 모든 ADR / NFR / FR / UoW / Bet / Pitch
 
-### 인덱싱 커버리지 (Dashboard 기준)
-| 타입 | 수량 | 위치 |
-|------|:----:|------|
-| ADR | 10건 | `20-projects/warvis-hackerton--adr-*.md` |
-| FR | 16건 | `20-projects/warvis-hackerton--fr-*.md` |
-| NFR | 9건 | `20-projects/warvis-hackerton--nfr-*.md` |
-| UoW | 20건 | `20-projects/warvis-hackerton--uow-*.md` |
-| Bet | 1건 | `20-projects/warvis-hackerton--bet-*.md` |
-| Pitch | 5건 | `20-projects/warvis-hackerton--pitch-*.md` |
+### 인덱싱 커버리지 (실측, 2026-04-25 재인덱싱)
+| 타입 | 수량 | 위치 | 비고 |
+|------|:----:|------|------|
+| ADR | 11건 | `20-projects/warvis-hackerton--adr-*.md` | dual-chain / dual-chain-architecture 중복 의심 |
+| FR | 16건 | `20-projects/warvis-hackerton--fr-*.md` | canonical |
+| FR (상세) | 7건 | `20-projects/warvis-hackerton--fr-fr-*.md` | 세부 스펙 보조문서 |
+| NFR | 9건 | `20-projects/warvis-hackerton--nfr-*.md` | |
+| UoW | 21건 | `20-projects/warvis-hackerton--uow-*.md` | uow-r9-gap-fix-code 참조전용 포함 |
+| Bet | 2건 | `20-projects/warvis-hackerton--bet-*.md` | 동일 Bet 두 버전 파일 |
+| Pitch | 6건 | `20-projects/warvis-hackerton--pitch-*.md` | whitepaper 두 버전 포함 |
+| SSOT/Scope/기타 | 10건 | `20-projects/warvis-hackerton--ssot-*.md` 외 | |
+| **총 인덱싱** | **84건** | — | GraphRAG task `task-warvis-hackerton-bb08b4ca` |
 
 ## Live Deployment
 
@@ -72,7 +75,7 @@ Obsidian (SSoT)  ←→  warvis-mcp (인덱스)  ←→  로컬 코드
 |------|-----|
 | **URL** | `https://meritscore.warvis.org` |
 | **Port** | `61234` (docker-compose) |
-| **Mode** | `MOCK_MODE=true` (default) |
+| **Mode** | `MOCK_MODE=false` (0G TeeML 실제 연동) |
 
 ### Deployed Contracts
 
@@ -100,15 +103,24 @@ Obsidian (SSoT)  ←→  warvis-mcp (인덱스)  ←→  로컬 코드
 | 2 | TEE Attestation Card | ✅ DONE |
 | 3 | KH 3-Step Workflow + Log | ✅ DONE |
 | 4 | AI Enriches Formula | ✅ DONE |
-| 5 | ZK Merit Proof | ⬜ 선택적 |
+| 5 | ZK Merit Proof | ✅ DONE |
 
-## Spike Learnings (D-2, 2026-04-22)
+## Spike Learnings
 
 - **0G Galileo**: forge/cast 모든 명령에 `--legacy` 플래그 필수
-- **0G Compute**: `from a0g import A0G`, `get_all_services()` sync. 레저 계정 A0G 추가 필요
-- **0G Storage**: SDK `from contracts import FlowContract`. 킥오프 시 인프라 재확인
-- **KeeperHub**: 킥오프 시 endpoint 공개 예정. `KH_API_KEY`는 `.env` 전용
-- **Wallet**: `0x0bb64a3ec3B1c3Fc818A384D580Cc7E61f4c352E`
+- **0G Compute**: `ledger.transferFund(provider, "inference-v1.0", amount)` — service name은 `"inference-v1.0"` (not `"inference"`)
+- **0G Compute account**: `inference_contract.getAccount(user, provider)` — index[3] = balance wei
+- **0G Storage**: `EvidenceRegistry.latest()` → `(bytes32, string, uint256)`
+- **KeeperHub**: endpoint 미확인. Discord `#keeperhub` 채널에서 확인 필요. `KH_API_KEY`는 `.env` 전용
+- **validate_merit**: known demo addresses를 contract 호출 전에 먼저 체크 (contract는 demo alias 모름)
+- **Wallet**: `0x0bb64a3ec3B1c3Fc818A384D580Cc7E61f4c352E` (잔액 ~3.0 A0GI)
+
+### Deployed Contracts (추가)
+
+| Contract | Chain | Address |
+|----------|-------|---------|
+| `MeritVault` v2 (demo) | Base Sepolia (84532) | `0xf55452BfE9f37A4A8D77e18524F4Ae81537C0a7e` |
+| `AgentLendingPool` | Base Sepolia (84532) | `0x78E33F871f210E898cd875e259ce24BD61074e34` |
 
 
 ## Agent Delegation
