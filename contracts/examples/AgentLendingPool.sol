@@ -2,7 +2,11 @@
 pragma solidity ^0.8.20;
 
 import {IMeritVault} from "../interfaces/IMeritVault.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+interface IERC20 {
+    function transfer(address to, uint256 amount) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
+}
 
 /// @title Agent Lending Pool (warvis-hackerton integration example)
 /// @notice Only approved agents above merit threshold can borrow
@@ -10,7 +14,7 @@ contract AgentLendingPool {
     IMeritVault public immutable merit;
     IERC20 public immutable asset;
 
-    uint256 public constant MIN_MERIT = 500; // 0.500 on 0-1000 scale
+    uint256 public constant MIN_MERIT = 5000; // 0.5000 on 1e4 scale (alice=2641 rejected, bob=6703 approved)
     uint256 public constant MAX_LTV_BPS = 7500;
 
     mapping(address => uint256) public collateral;

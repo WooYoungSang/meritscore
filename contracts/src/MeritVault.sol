@@ -35,6 +35,15 @@ contract MeritVault is IMeritVault {
         return allocation[agent];
     }
 
+    /// Owner-only: seed initial scores for demo agents (callable once, before validate)
+    function seedScores(address[] calldata agents, uint256[] calldata scores) external onlyOwner {
+        require(!validated, "already validated");
+        require(agents.length == scores.length, "length mismatch");
+        for (uint256 i = 0; i < agents.length; i++) {
+            allocation[agents[i]] = scores[i];
+        }
+    }
+
     /// CHECK — KeeperHub step 1: verify merit threshold met
     function check(address account, uint256 threshold) external view returns (bool) {
         return allocation[account] >= threshold;

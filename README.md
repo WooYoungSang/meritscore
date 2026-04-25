@@ -125,10 +125,11 @@ require(merit.getScore(agent) >= MIN_MERIT_THRESHOLD, "Agent merit too low");
 | Agent | Merit Score | Approval | LTV | Reason |
 |-------|:-----------:|:--------:|:---:|--------|
 | **Bob** (Honest Arbitrageur) | 0.6703 | ✅ **APPROVED** | 60% | Merit ≥ 600 → can borrow at 6% LTV |
-| **Alice** (MEV Sandwich Bot) | 0.2641 | ❌ **REJECTED** | — | Merit < 500 → insufficient trust, cannot borrow |
+| **Alice** (MEV Sandwich Bot) | 0.2641 | ❌ **REJECTED** | — | Merit 2641 < MIN_MERIT 5000 → reverts "agent merit too low" |
 
 **Live Example Contract:** [`AgentLendingPool.sol`](./contracts/examples/AgentLendingPool.sol)  
-**Deployment:** [Basescan](https://sepolia.basescan.org/address/[deploy pending]) *(Deployment pending private key env var)*
+**Deployment:** [Basescan](https://sepolia.basescan.org/address/0x78E33F871f210E898cd875e259ce24BD61074e34) · tx `0x2ccca353...`  
+**MeritVault (demo):** [Basescan](https://sepolia.basescan.org/address/0xf55452BfE9f37A4A8D77e18524F4Ae81537C0a7e) · seeded scores: alice=2641, bob=6703, carol=0
 
 ---
 
