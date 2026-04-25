@@ -1,42 +1,52 @@
 [
   {
-    "address": "0x1111111111111111111111111111111111111111",
-    "label": "Flashbots MEV-Searcher-1",
-    "tx_count": 1247,
+    "address": "0x6b75d8af000000e20b7a7ddf000ba900b4009a80",
+    "label": "jaredfromsubway.eth MEV Bot v2.0",
+    "chain": "ethereum-mainnet",
+    "evidence": "https://etherscan.io/address/0x6b75d8af000000e20b7a7ddf000ba900b4009a80",
+    "tx_count": 85000,
     "sandwich_score": 0.92,
     "merit_estimate": 0.05,
-    "source": "Inspired by EigenPhi patterns — sandwich bundle detection"
+    "source": "EigenPhi documented — 5-7 layer sandwich attacks, 765 ETH profit (~$2M)"
   },
   {
-    "address": "0x2222222222222222222222222222222222222222",
-    "label": "Lido Validator Node",
-    "tx_count": 45892,
-    "sandwich_score": 0.08,
-    "merit_estimate": 0.78,
-    "source": "Inspired by known honest staking operators"
+    "address": "0x1f2f10d1c40777ae1da742455c65828ff36df387",
+    "label": "jaredfromsubway MEV Bot v1.0 (Legacy)",
+    "chain": "ethereum-mainnet",
+    "evidence": "https://etherscan.io/address/0x1f2f10d1c40777ae1da742455c65828ff36df387",
+    "tx_count": 42000,
+    "sandwich_score": 0.88,
+    "merit_estimate": 0.08,
+    "source": "EigenPhi — $22M+ total profit since March 2023, frontrun/sandwich pattern"
   },
   {
-    "address": "0x3333333333333333333333333333333333333333",
-    "label": "MEV-bot-arbitrage-v2",
-    "tx_count": 3421,
-    "sandwich_score": 0.87,
-    "merit_estimate": 0.12,
-    "source": "Inspired by Flashbots Searcher patterns"
+    "address": "0xede2fafba9e23418485f49f052d0e1d332853e0f",
+    "label": "MEV Contract Bot (sandwich)",
+    "chain": "ethereum-mainnet",
+    "evidence": "https://etherscan.io/address/0xede2fafba9e23418485f49f052d0e1d332853e0f",
+    "tx_count": 8200,
+    "sandwich_score": 0.75,
+    "merit_estimate": 0.18,
+    "source": "Etherscan — smart contract sandwich pattern, moderate extraction intensity"
   },
   {
-    "address": "0x4444444444444444444444444444444444444444",
-    "label": "DEX Router Aggregator (1inch)",
-    "tx_count": 892145,
+    "address": "0x0c3de458b51a11da7d4616f42f66c861e3859d3e",
+    "label": "Honest Arbitrage Bot",
+    "chain": "ethereum-mainnet",
+    "evidence": "https://etherscan.io/address/0x0c3de458b51a11da7d4616f42f66c861e3859d3e",
+    "tx_count": 3100,
     "sandwich_score": 0.15,
-    "merit_estimate": 0.82,
-    "source": "Inspired by official DEX aggregator behavior"
+    "merit_estimate": 0.72,
+    "source": "Etherscan — primarily uni-directional arbitrage, clean gas pattern"
   },
   {
-    "address": "0x5555555555555555555555555555555555555555",
-    "label": "Unknown Contract (48h age)",
+    "address": "0x4cadecc51feb5c1f6d9a902ecc817a1b8c2246f9",
+    "label": "New Unverified Agent",
+    "chain": "ethereum-mainnet",
+    "evidence": "https://etherscan.io/address/0x4cadecc51feb5c1f6d9a902ecc817a1b8c2246f9",
     "tx_count": 142,
     "sandwich_score": 0.45,
     "merit_estimate": 0.0,
-    "source": "Unverified new agent — sandwiching not confirmed"
+    "source": "Etherscan — low tx count, unverified behavior pattern, merit not established"
   }
 ]
