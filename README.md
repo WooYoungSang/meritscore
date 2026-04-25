@@ -4,6 +4,8 @@
 
 > **Built during EthGlobal OpenAgents hackathon — 2026-04-25T01:00+09:00**
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://warvis-hackerton.streamlit.app)
+
 ---
 
 ## The Problem
@@ -103,6 +105,30 @@ Protocol checks MeritScore before executing agent orders:
 ```solidity
 require(meritCore.getMerit(msg.sender) > threshold, "MERIT_TOO_LOW");
 ```
+
+---
+
+## 🔗 How other protocols integrate
+
+Any protocol can integrate MeritScore in **3 lines of code**:
+
+```solidity
+import {IMeritVault} from "warvis-hackerton/contracts/interfaces/IMeritVault.sol";
+
+// In your contract:
+IMeritVault merit = IMeritVault(0x3ef2818dD26F4B2e73D8fAb65F6aEA6bc1A2F5E2);
+require(merit.getScore(agent) >= MIN_MERIT_THRESHOLD, "Agent merit too low");
+```
+
+**Example:** `AgentLendingPool` — demonstrates tiered collateral requirements based on agent merit:
+
+| Agent | Merit Score | Approval | LTV | Reason |
+|-------|:-----------:|:--------:|:---:|--------|
+| **Bob** (Honest Arbitrageur) | 0.6703 | ✅ **APPROVED** | 60% | Merit ≥ 600 → can borrow at 6% LTV |
+| **Alice** (MEV Sandwich Bot) | 0.2641 | ❌ **REJECTED** | — | Merit < 500 → insufficient trust, cannot borrow |
+
+**Live Example Contract:** [`AgentLendingPool.sol`](./contracts/examples/AgentLendingPool.sol)  
+**Deployment:** [Basescan](https://sepolia.basescan.org/address/[deploy pending]) *(Deployment pending private key env var)*
 
 ---
 

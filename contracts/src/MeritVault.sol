@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {IMeritVault} from "../interfaces/IMeritVault.sol";
+
 /// @notice Merit-weighted distribution vault (Base Sepolia, chainId 84532)
 /// Supports KeeperHub 3-step workflow: CHECK → VALIDATE → EXECUTE
-contract MeritVault {
+contract MeritVault is IMeritVault {
     address public immutable owner;
 
     // merit scores scaled 1e4 (alice=2641, bob=6703, carol=0)
@@ -26,6 +28,11 @@ contract MeritVault {
 
     receive() external payable {
         emit Deposited(msg.sender, msg.value);
+    }
+
+    /// @inheritdoc IMeritVault
+    function getScore(address agent) external view returns (uint256) {
+        return allocation[agent];
     }
 
     /// CHECK — KeeperHub step 1: verify merit threshold met
