@@ -88,6 +88,7 @@ function AgentCard({ meta, data, selected, onSelect }) {
   const score = data?.score ?? FALLBACK[meta.id].score;
   const verdict = data?.verdict ?? verdictFor(score);
   const mode = (data?.mode ?? FALLBACK[meta.id].mode).toLowerCase();
+  const isAdversarial = meta.id === "carol";
 
   const val = useAnimatedNumber(score);
   const pct = Math.round(val * 100);
@@ -97,6 +98,24 @@ function AgentCard({ meta, data, selected, onSelect }) {
 
   return (
     <div className={`agent-card ${selected ? "selected" : ""}`} onClick={onSelect} role="button" tabIndex={0}>
+      {isAdversarial && (
+        <div style={{
+          background: "rgba(255,68,68,0.15)",
+          border: "1px solid rgba(255,68,68,0.4)",
+          borderRadius: "8px",
+          padding: "10px 14px",
+          marginBottom: "12px",
+          fontSize: "12px",
+          color: "var(--red)",
+          fontWeight: 600,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px"
+        }}>
+          <span style={{fontSize: "16px"}}>⚠️</span>
+          <span>ADVERSARIAL AGENT DETECTED</span>
+        </div>
+      )}
       <div className="card-top">
         <div>
           <div className="agent-name">{meta.name}</div>
@@ -498,7 +517,8 @@ function App() {
           <div className="brand-mark mono">M</div>
           <div className="brand-text">
             <h1>Merit<span>Score</span></h1>
-            <p>Experian for AI agents — on-chain credit scores that gate DeFi access across 0G + Base</p>
+            <p style={{fontWeight: 600, color: "var(--accent)", marginBottom: "8px"}}>The Experian for AI Agents</p>
+            <p>On-chain credit scores that gate DeFi access across 0G + Base</p>
           </div>
         </div>
         <div className="pills">

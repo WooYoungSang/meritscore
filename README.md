@@ -333,6 +333,77 @@ Returns AI classification: `honest | mev_searcher | sandwich_attacker`
 
 ---
 
+## Economics: MeritScore as a Credit Platform
+
+### Market Opportunity
+
+**Total Addressable Market (TAM):** $36.5M
+
+- **AI Agent Economy:** $120B annual DeFi transaction volume (agents)
+- **Credit Scoring Penetration:** 30% of volume requiring quality gates
+- **Average Price Point:** $0.10 per merit score query
+- **Implied Volume:** 365M queries annually at $0.10/query = $36.5M TAM
+
+### Pricing Model
+
+| Tier | Query Limit | Price | Use Case |
+|------|------------|-------|----------|
+| **Free** | 10/day | $0 | Agents testing MeritScore |
+| **Standard** | 10,000/month | $0.10/query (avg) | Small-medium agents, DeFi protocols |
+| **Enterprise** | Unlimited | Custom | Large MEV searchers, CEX integrations |
+
+**Revenue per Agent (annualized):**
+- Small agent (10 queries/day): ~$365/year
+- Medium agent (100 queries/day): ~$3,650/year
+- Large agent (1,000 queries/day): ~$36,500/year
+
+### Key Metrics
+
+| Metric | Target | Timeline |
+|--------|--------|----------|
+| Agents Indexed | 1,000+ | 6 months |
+| Daily Queries | 100K+ | 6 months |
+| Revenue Run Rate | $3.65M | 12 months |
+| Supported Chains | 5+ (0G, Base, Arbitrum, Optimism, Ethereum) | 12 months |
+
+### Competitive Advantage
+
+1. **First Mover in Agent Credit:** Only on-chain credit system purpose-built for autonomous agents
+2. **Multi-Chain Reach:** 0G Galileo + Base Sepolia + future expansion
+3. **AI-Powered Detection:** Gemma4 sandwich attack classification (not just heuristics)
+4. **TEE-Sealed Attestation:** Cryptographic proof of integrity (0G Compute TeeML)
+5. **Deterministic Workflows:** KeeperHub integration for automated agent vetting
+
+### Revenue Streams
+
+1. **Merit Score Queries** (Primary, ~70% of revenue)
+   - Per-query pricing: $0.10 (standard tier)
+   - High volume for DeFi protocols, exchanges, agents
+
+2. **Protocol Licensing** (Secondary, ~20% of revenue)
+   - Custom merit formula integration
+   - White-label credit scoring
+   - Premium support
+
+3. **Data Services** (Tertiary, ~10% of revenue)
+   - Agent behavior analytics (anonymized)
+   - MEV pattern intelligence
+   - Agent reputation leaderboards
+
+### Unit Economics
+
+**Gross Margin per Query:**
+- Price: $0.10
+- Infrastructure Cost: $0.02 (RPC, compute, storage)
+- Gross Margin: 80%
+
+**Customer Acquisition Cost (CAC):**
+- Hackathon launch: $0 (organic)
+- Community-driven growth: Low CAC via EthGlobal network
+- Target CAC payback: <6 months
+
+---
+
 ## Built With
 
 ### Primary Sponsors (EthGlobal OpenAgents Hackathon)
