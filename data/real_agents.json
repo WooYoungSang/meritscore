@@ -1,0 +1,42 @@
+[
+  {
+    "address": "0x1111111111111111111111111111111111111111",
+    "label": "Flashbots MEV-Searcher-1",
+    "tx_count": 1247,
+    "sandwich_score": 0.92,
+    "merit_estimate": 0.05,
+    "source": "Inspired by EigenPhi patterns — sandwich bundle detection"
+  },
+  {
+    "address": "0x2222222222222222222222222222222222222222",
+    "label": "Lido Validator Node",
+    "tx_count": 45892,
+    "sandwich_score": 0.08,
+    "merit_estimate": 0.78,
+    "source": "Inspired by known honest staking operators"
+  },
+  {
+    "address": "0x3333333333333333333333333333333333333333",
+    "label": "MEV-bot-arbitrage-v2",
+    "tx_count": 3421,
+    "sandwich_score": 0.87,
+    "merit_estimate": 0.12,
+    "source": "Inspired by Flashbots Searcher patterns"
+  },
+  {
+    "address": "0x4444444444444444444444444444444444444444",
+    "label": "DEX Router Aggregator (1inch)",
+    "tx_count": 892145,
+    "sandwich_score": 0.15,
+    "merit_estimate": 0.82,
+    "source": "Inspired by official DEX aggregator behavior"
+  },
+  {
+    "address": "0x5555555555555555555555555555555555555555",
+    "label": "Unknown Contract (48h age)",
+    "tx_count": 142,
+    "sandwich_score": 0.45,
+    "merit_estimate": 0.0,
+    "source": "Unverified new agent — sandwiching not confirmed"
+  }
+]

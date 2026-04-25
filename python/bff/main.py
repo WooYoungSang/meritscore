@@ -229,8 +229,12 @@ async def analyze(request_body: dict):
             address, tx_history, mode="Direct"
         )
 
-        # Mark Carol and her address as adversarial (sandwich MEV attack patterns)
-        is_adversarial = address.lower() in ["carol", "0xca401ca401ca401ca401ca401ca401ca401ca401"]
+        # Mark Carol and Alice and their addresses as adversarial (sandwich MEV attack patterns)
+        is_adversarial = address.lower() in [
+            "carol", "0xca401ca401ca401ca401ca401ca401ca401ca401",
+            "alice", "0xa11cea1a11cea1a11cea1a11cea1a11cea1a11ce",
+            "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+        ]
 
         return {
             "address": address,

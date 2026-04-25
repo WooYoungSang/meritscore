@@ -211,13 +211,13 @@ def test_analyze_clean_single_tx(client):
     response = client.post(
         "/analyze",
         json={
-            "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
             "tx_history": ["0xabc123"]
         }
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["address"] == "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+    assert data["address"] == "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
     assert data["gaming_detected"] is False
     assert "reason" in data
     assert data["mode"] == "Direct"
@@ -244,7 +244,7 @@ def test_analyze_empty_tx_history(client):
     response = client.post(
         "/analyze",
         json={
-            "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
             "tx_history": []
         }
     )
@@ -293,7 +293,7 @@ def test_analyze_ac3_merit_penalty_clean(client):
     response = client.post(
         "/analyze",
         json={
-            "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+            "address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
             "tx_history": ["0xabc123"]
         }
     )

@@ -1,0 +1,236 @@
+openapi: 3.0.0
+info:
+  title: Proof-of-Merit Score Service
+  description: On-chain merit verification and adversarial detection for DeFi agents
+  version: 1.0.0
+  contact:
+    name: WARVIS Hackathon Team
+    url: https://meritscore.warvis.org
+
+servers:
+  - url: https://meritscore.warvis.org
+    description: Production server
+  - url: http://localhost:61234
+    description: Development server
+
+tags:
+  - name: Merit
+    description: On-chain merit lookup and verification
+  - name: KeeperHub
+    description: Workflow orchestration (CHECK → VALIDATE → EXECUTE)
+  - name: Analysis
+    description: AI-driven adversarial detection and enrichment
+
+paths:
+  /merit/{address}:
+    get:
+      tags:
+        - Merit
+      summary: Query merit score for an address
+      description: |
+        Retrieve merit score from MeritCore contract.
+        Accepts agent names (alice/bob/carol) or 0x Ethereum addresses.
+      operationId: getMerit
+      parameters:
+        - name: address
+          in: path
+          required: true
+          description: Agent name (alice/bob/carol) or 0x address
+          schema:
+            type: string
+            pattern: '^(alice|bob|carol|0x[a-fA-F0-9]{40})$'
+      responses:
+        '200':
+          description: Merit score successfully retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  address:
+                    type: string
+                    example: '0xa11cea1a11cea1a11cea1a11cea1a11cea1a11ce'
+                  score:
+                    type: number
+                    format: float
+                    example: 0.2641
+                  score_1e4:
+                    type: integer
+                    example: 2641
+                  exists:
+                    type: boolean
+                    example: true
+                  mode:
+                    type: string
+                    enum: [Direct, Workflow, Web3]
+        '400':
+          description: Invalid address format
+        '500':
+          description: Chain connectivity error
+
+  /kh/workflow:
+    post:
+      tags:
+        - KeeperHub
+      summary: Execute KeeperHub workflow (CHECK → VALIDATE → EXECUTE)
+      description: |
+        3-step workflow for merit verification via KeeperHub oracle.
+        Step 1: CHECK merit threshold. Step 2: VALIDATE on-chain.
+        Step 3: EXECUTE contingent action.
+      operationId: khWorkflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                address:
+                  type: string
+                  description: Agent address (0x format)
+                  example: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+                threshold:
+                  type: integer
+                  description: Merit score threshold (0-10000)
+                  example: 5000
+              required:
+                - address
+                - threshold
+      responses:
+        '200':
+          description: Workflow completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  check:
+                    type: boolean
+                    description: CHECK phase result
+                  validate:
+                    type: boolean
+                    description: VALIDATE phase result
+                  execute:
+                    type: string
+                    description: EXECUTE status (PENDING/CONFIRMED)
+                    enum: [PENDING, CONFIRMED]
+                  mode:
+                    type: string
+                    example: Workflow
+        '400':
+          description: Missing required fields
+        '500':
+          description: Workflow execution error
+
+  /analyze:
+    post:
+      tags:
+        - Analysis
+      summary: AI-driven adversarial detection (Sword #4)
+      description: |
+        Analyze transaction history for sandwich MEV attacks and adversarial gaming.
+        Uses LLM enrichment (Gemma 26B) + hardcoded adversarial patterns.
+      operationId: analyzeAdversarial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                address:
+                  type: string
+                  description: Agent address or alias
+                  example: 'alice'
+                tx_history:
+                  type: array
+                  description: Optional transaction history. If omitted, uses demo data.
+                  items:
+                    type: string
+                  example:
+                    - 'frontrun swap ETH→USDC 2.0 ETH block 19234501'
+                    - 'backrun swap USDC→ETH 2.0 ETH block 19234501'
+              required:
+                - address
+      responses:
+        '200':
+          description: Analysis complete
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  address:
+                    type: string
+                    description: Input address
+                  gaming_detected:
+                    type: boolean
+                    description: True if sandwich MEV or adversarial pattern detected
+                    example: true
+                  reason:
+                    type: string
+                    description: Explanation of detection
+                    example: 'Adversarial agent detected: sandwich MEV attack pattern'
+                  merit_penalty:
+                    type: number
+                    format: float
+                    description: Merit score penalty (0-1)
+                    example: 0.5
+                  adversarial_agent:
+                    type: boolean
+                    description: True if agent is known adversarial (alice/carol)
+                    example: true
+                  mode:
+                    type: string
+                    example: Direct
+        '400':
+          description: Missing address
+        '500':
+          description: Analysis error
+
+components:
+  schemas:
+    MeritScore:
+      type: object
+      properties:
+        address:
+          type: string
+        score:
+          type: number
+        exists:
+          type: boolean
+    WorkflowResult:
+      type: object
+      properties:
+        check:
+          type: boolean
+        validate:
+          type: boolean
+        execute:
+          type: string
+    AnalysisResult:
+      type: object
+      properties:
+        gaming_detected:
+          type: boolean
+        adversarial_agent:
+          type: boolean
+        merit_penalty:
+          type: number
+
+x-mcp-provider:
+  tier: provider
+  category: on-chain-verification
+  keywords:
+    - proof-of-merit
+    - adversarial-detection
+    - sandwich-mev
+    - keeperhub
+    - 0g-compute
+  supported_chains:
+    - id: 16602
+      name: 0G Galileo
+      rpc: https://evmrpc-testnet.0g.ai
+    - id: 84532
+      name: Base Sepolia
+      rpc: https://sepolia.base.org
