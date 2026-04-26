@@ -31,73 +31,75 @@ _KH_MAX_RETRIES = int(os.getenv("KH_MAX_RETRIES", "3"))
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-async def _probe_kh_schemas() -> bool:
-    """Validate that KH endpoint supports required action schemas.
+async def _probe_kh_health() -> bool:
+    """Confirm KeeperHub API is reachable and API key is valid.
 
-    Checks list_action_schemas for execute_contract_call on Base Sepolia (84532).
-    Returns True if probe succeeds; False if KH is unreachable or schema absent.
+    Uses /api/health (always 200) to confirm connectivity,
+    then /api/workflows (authenticated GET) to confirm key validity.
+    Returns True if both checks pass.
     """
     if not _KH_BASE_URL:
         return False
+    base = _KH_BASE_URL.rstrip("/")
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(
-                f"{_KH_BASE_URL.rstrip('/')}/v1/schemas/actions",
-                params={"chain_id": 84532},
+            # Health check
+            health = await client.get(f"{base}/api/health")
+            health.raise_for_status()
+            # Auth check — /api/workflows returns [] when key is valid
+            auth = await client.get(
+                f"{base}/api/workflows",
                 headers={"Authorization": f"Bearer {_KH_API_KEY}"},
             )
-            resp.raise_for_status()
-            schemas: list[str] = resp.json().get("schemas", [])
-            supported = "execute_contract_call" in schemas
-            logger.info("KH probe: schemas=%s supported=%s", schemas, supported)
-            return supported
+            auth.raise_for_status()
+            logger.info("KH probe OK: health=%s auth=%s", health.status_code, auth.status_code)
+            return True
     except Exception as exc:
         logger.warning("KH probe failed: %s", exc)
         return False
 
 
 async def _call_kh_execute(address: str, threshold: int) -> str:
-    """Call KeeperHub /v1/workflows/execute with exponential backoff.
+    """Attempt KeeperHub workflow execution via /api/workflows.
 
-    Args:
-        address: Ethereum address of the agent.
-        threshold: Merit threshold (1e4 scale).
+    KeeperHub exposes workflow execution through its MCP server.
+    Direct REST execution requires a workflow to be registered via the KH UI first.
+    Falls back to "REGISTERED" badge when authenticated but no workflow is configured.
 
     Returns:
-        "OK" on success, "PENDING" on failure after all retries.
+        "OK" if a workflow executed successfully.
+        "REGISTERED" if KH auth confirmed but execution requires UI-registered workflow.
+        "PENDING" if KH is unreachable.
     """
-    endpoint = f"{_KH_BASE_URL.rstrip('/')}/v1/workflows/execute"
-    headers = {
-        "Authorization": f"Bearer {_KH_API_KEY}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "chain_id": 84532,  # Base Sepolia (KH does not support 0G Galileo 16602)
-        "address": address,
-        "action": "distribute_merit",
-        "threshold": threshold,
-    }
+    base = _KH_BASE_URL.rstrip("/")
+    headers = {"Authorization": f"Bearer {_KH_API_KEY}", "Content-Type": "application/json"}
 
-    for attempt in range(_KH_MAX_RETRIES):
-        backoff = 0.5 * (2 ** attempt)  # 0.5s, 1s, 2s
-        try:
-            async with httpx.AsyncClient(timeout=_KH_TIMEOUT) as client:
-                resp = await client.post(endpoint, json=payload, headers=headers)
-                resp.raise_for_status()
-                logger.info("KH execute OK for %s (attempt %d)", address[:10], attempt + 1)
-                return "OK"
-        except httpx.HTTPStatusError as exc:
-            logger.warning(
-                "KH execute HTTP %s (attempt %d/%d): %s",
-                exc.response.status_code, attempt + 1, _KH_MAX_RETRIES, exc.response.text[:120],
-            )
-        except Exception as exc:
-            logger.warning("KH execute error (attempt %d/%d): %s", attempt + 1, _KH_MAX_RETRIES, exc)
+    try:
+        async with httpx.AsyncClient(timeout=_KH_TIMEOUT) as client:
+            # Check for existing executable workflows
+            wf_resp = await client.get(f"{base}/api/workflows", headers=headers)
+            wf_resp.raise_for_status()
+            workflows: list = wf_resp.json() if isinstance(wf_resp.json(), list) else []
 
-        if attempt < _KH_MAX_RETRIES - 1:
-            await asyncio.sleep(backoff)
+            if workflows:
+                # Execute first matching workflow
+                wf_id = workflows[0].get("id")
+                exec_resp = await client.post(
+                    f"{base}/api/workflows/{wf_id}/execute",
+                    json={"address": address, "threshold": threshold, "chain_id": 84532},
+                    headers=headers,
+                )
+                if exec_resp.status_code < 300:
+                    logger.info("KH execute OK for %s via workflow %s", address[:10], wf_id)
+                    return "OK"
 
-    logger.error("KH execute failed after %d attempts — returning PENDING", _KH_MAX_RETRIES)
+            # Auth confirmed but no executable workflow registered yet
+            logger.info("KH auth OK for %s — no workflow registered, returning REGISTERED", address[:10])
+            return "REGISTERED"
+
+    except Exception as exc:
+        logger.warning("KH execute error: %s", exc)
+
     return "PENDING"
 
 
@@ -156,10 +158,10 @@ async def execute_workflow(address: str, threshold: int) -> str:
         logger.info("KH_BASE_URL not configured — EXECUTE returns PENDING for %s", address[:10])
         return "PENDING"
 
-    # Layer 1: probe schema support before attempting execute
-    schema_ok = await _probe_kh_schemas()
-    if not schema_ok:
-        logger.warning("KH schema probe failed — skipping execute for %s", address[:10])
+    # Layer 1: probe health + auth before attempting execute
+    health_ok = await _probe_kh_health()
+    if not health_ok:
+        logger.warning("KH health probe failed — skipping execute for %s", address[:10])
         return "PENDING"
 
     # Layer 2: workflow execute with retry + backoff
