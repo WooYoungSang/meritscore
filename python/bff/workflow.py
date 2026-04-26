@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 _KH_BASE_URL = os.getenv("KH_BASE_URL", "")
 _KH_API_KEY = os.getenv("KH_API_KEY", "")
+_KH_WEBHOOK_KEY = os.getenv("KH_WEBHOOK_KEY", "")
+_KH_WORKFLOW_ID = os.getenv("KH_WORKFLOW_ID", "")
 _KH_TIMEOUT = float(os.getenv("KH_TIMEOUT_SECONDS", "10"))
 _KH_MAX_RETRIES = int(os.getenv("KH_MAX_RETRIES", "3"))
 
@@ -60,45 +62,34 @@ async def _probe_kh_health() -> bool:
 
 
 async def _call_kh_execute(address: str, threshold: int) -> str:
-    """Attempt KeeperHub workflow execution via /api/workflows.
-
-    KeeperHub exposes workflow execution through its MCP server.
-    Direct REST execution requires a workflow to be registered via the KH UI first.
-    Falls back to "REGISTERED" badge when authenticated but no workflow is configured.
+    """Trigger KeeperHub workflow via /api/workflows/{id}/webhook.
 
     Returns:
-        "OK" if a workflow executed successfully.
-        "REGISTERED" if KH auth confirmed but execution requires UI-registered workflow.
-        "PENDING" if KH is unreachable.
+        "OK" if workflow started (status running/queued).
+        "PENDING" if unreachable or no workflow configured.
     """
+    if not _KH_WEBHOOK_KEY or not _KH_WORKFLOW_ID:
+        logger.info("KH_WEBHOOK_KEY or KH_WORKFLOW_ID not set — returning PENDING")
+        return "PENDING"
+
     base = _KH_BASE_URL.rstrip("/")
-    headers = {"Authorization": f"Bearer {_KH_API_KEY}", "Content-Type": "application/json"}
+    url = f"{base}/api/workflows/{_KH_WORKFLOW_ID}/webhook"
+    headers = {"Authorization": f"Bearer {_KH_WEBHOOK_KEY}", "Content-Type": "application/json"}
 
     try:
         async with httpx.AsyncClient(timeout=_KH_TIMEOUT) as client:
-            # Check for existing executable workflows
-            wf_resp = await client.get(f"{base}/api/workflows", headers=headers)
-            wf_resp.raise_for_status()
-            workflows: list = wf_resp.json() if isinstance(wf_resp.json(), list) else []
-
-            if workflows:
-                # Execute first matching workflow
-                wf_id = workflows[0].get("id")
-                exec_resp = await client.post(
-                    f"{base}/api/workflows/{wf_id}/execute",
-                    json={"address": address, "threshold": threshold, "chain_id": 84532},
-                    headers=headers,
-                )
-                if exec_resp.status_code < 300:
-                    logger.info("KH execute OK for %s via workflow %s", address[:10], wf_id)
-                    return "OK"
-
-            # Auth confirmed but no executable workflow registered yet
-            logger.info("KH auth OK for %s — no workflow registered, returning REGISTERED", address[:10])
-            return "REGISTERED"
-
+            resp = await client.post(
+                url,
+                json={"address": address, "threshold": threshold, "chain_id": 84532},
+                headers=headers,
+            )
+            if resp.status_code < 300:
+                data = resp.json()
+                logger.info("KH webhook OK for %s: %s", address[:10], data)
+                return "OK"
+            logger.warning("KH webhook %s for %s: %s", resp.status_code, address[:10], resp.text[:100])
     except Exception as exc:
-        logger.warning("KH execute error: %s", exc)
+        logger.warning("KH webhook error: %s", exc)
 
     return "PENDING"
 
