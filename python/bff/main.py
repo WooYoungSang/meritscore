@@ -157,17 +157,9 @@ async def merit(address: str):
         {address, score (float), score_1e4 (int), exists (bool), mode}
     """
     alias = _AGENT_ALIASES.get(address.lower())
-    if alias:
-        score = alias["score"]
-        return {
-            "address": alias["address"],
-            "score": score,
-            "score_1e4": int(score * 10000),
-            "exists": True,
-            "mode": alias["mode"],
-        }
+    lookup = alias["address"] if alias else address
     try:
-        result = await get_merit(address, RPC_GALILEO)
+        result = await get_merit(lookup, RPC_GALILEO)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
