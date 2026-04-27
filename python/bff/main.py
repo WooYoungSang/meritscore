@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 from .chain import health_check, get_merit
 from .attestation import get_attestation_data
-from .workflow import check_and_validate_merit, execute_workflow
+from .workflow import check_and_validate_merit, execute_workflow, zk_verify_merit
 from .sandwich_detector import detect_sandwich_llm
 from .agent_loop import merit_guard_loop, get_state
 
@@ -26,6 +26,9 @@ RPC_BASE_SEPOLIA = os.getenv("RPC_BASE_SEPOLIA", "https://sepolia.base.org")
 
 # Global background task reference
 _merit_guard_task = None
+
+# Global KH execution log (max 20 entries)
+_kh_execution_log = []
 
 
 @asynccontextmanager
@@ -190,14 +193,16 @@ async def attestation():
 @app.post("/kh/workflow")
 async def kh_workflow(request_body: dict):
     """
-    KeeperHub workflow (Sword #3): CHECK -> VALIDATE -> EXECUTE.
+    KeeperHub workflow (Sword #3): CHECK -> VALIDATE -> ZK_VERIFY -> EXECUTE.
 
     Request body:
         {address: str, threshold: int}
 
     Returns:
-        {check, validate, execute, mode}
+        {check, validate, zk_verify, execute, mode}
     """
+    import datetime
+
     try:
         address = request_body.get("address")
         threshold = request_body.get("threshold")
@@ -210,12 +215,29 @@ async def kh_workflow(request_body: dict):
             address, threshold, RPC_BASE_SEPOLIA
         )
 
+        # ZK_VERIFY
+        zk_result = await zk_verify_merit(address, threshold)
+
         # EXECUTE (pending)
         execute_status = await execute_workflow(address, threshold)
+
+        # Log execution
+        log_entry = {
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "address": address,
+            "threshold": threshold,
+            "check": check_ok,
+            "validate": validate_ok,
+            "zk_verify": zk_result.get("verified", False),
+            "execute": execute_status,
+        }
+        global _kh_execution_log
+        _kh_execution_log = [log_entry] + _kh_execution_log[:19]
 
         return {
             "check": check_ok,
             "validate": validate_ok,
+            "zk_verify": zk_result,
             "execute": execute_status,
             "mode": "Workflow",
         }
@@ -305,6 +327,18 @@ async def zk_proof(body: dict):
         raise HTTPException(status_code=504, detail="ZK proof generation timed out")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/kh/execution-log")
+async def kh_execution_log():
+    """
+    Get KeeperHub execution log (last 20 attempts).
+
+    Returns:
+        {entries: list[{timestamp, address, threshold, check, validate, zk_verify, execute}]}
+    """
+    global _kh_execution_log
+    return {"entries": _kh_execution_log}
 
 
 @app.get("/agent-loop/status")

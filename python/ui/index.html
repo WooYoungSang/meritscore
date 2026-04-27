@@ -180,13 +180,13 @@
   .spark { margin-top: 16px; height: 36px; width: 100%; display: block; }
 
   .tabs-wrap { margin-top: 28px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-  .tabs-bar { display: flex; border-bottom: 1px solid var(--border); background: #10161e; }
+  .tabs-bar { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--border); background: #10161e; padding: 4px; }
   .tab-btn {
-    flex: 1; padding: 14px 18px; background: transparent; border: 0;
+    flex: 1; min-width: 240px; padding: 14px 18px; background: transparent; border: 0;
     color: var(--text-dim); font-family: 'Space Grotesk', sans-serif;
     font-size: 13px; font-weight: 500; letter-spacing: 0.02em; cursor: pointer;
     display: flex; align-items: center; gap: 10px; justify-content: center;
-    position: relative; transition: color 0.15s, background 0.15s;
+    position: relative; transition: color 0.15s, background 0.15s; white-space: nowrap;
   }
   .tab-btn:hover { color: #d0d8e4; }
   .tab-btn.active { color: #fff; background: rgba(0,212,255,0.04); }
@@ -194,7 +194,7 @@
     content: ""; position: absolute; left: 18px; right: 18px; bottom: -1px;
     height: 2px; background: var(--accent); box-shadow: 0 0 8px var(--accent);
   }
-  .tab-btn .sword { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-mute); background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 4px; letter-spacing: 0.08em; }
+  .tab-btn .sword { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-mute); background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 4px; letter-spacing: 0.08em; flex-shrink: 0; }
   .tab-btn.active .sword { color: var(--accent); background: rgba(0,212,255,0.1); }
   .tab-body { padding: 24px 26px 28px; }
 
@@ -260,12 +260,19 @@
   .legend .workflow { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
   .legend .web3 { background: var(--purple); box-shadow: 0 0 6px var(--purple); }
 
+  @media (max-width: 1280px) {
+    .tab-btn { min-width: 180px; font-size: 12px; padding: 12px 14px; }
+    .tab-btn .sword { font-size: 9px; padding: 1px 4px; }
+  }
+
   @media (max-width: 960px) {
     .agent-grid { grid-template-columns: 1fr; }
     .hash-grid { grid-template-columns: 1fr; }
     .wf-grid { grid-template-columns: 1fr; }
     .header { flex-direction: column; }
     .eval-result { grid-template-columns: 1fr; }
+    .tab-btn { min-width: 160px; font-size: 11px; padding: 10px 12px; }
+    .tab-btn .sword { display: none; }
   }
 
   /* ── Sword #1 Live Eval ───────────────────────────────────────────────── */

@@ -131,6 +131,67 @@ async def check_and_validate_merit(
     return check_ok, validate_ok
 
 
+async def zk_verify_merit(address: str, threshold: int) -> dict:
+    """Generate ZK proof that agent merit >= threshold.
+
+    Returns:
+        {verified: bool, proof_hash: str, public_signals: list, merkle_root: str}
+        or {verified: False, reason: str, skipped: bool} if unknown agent
+    """
+    import subprocess
+    import json
+    from pathlib import Path
+
+    # Map address to agent name for ZK prover
+    ADDR_TO_AGENT = {
+        "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266": "alice",
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8": "bob",
+        "0x3c44cddddb6a900fa2b585dd299e03d12fa4293bc": "carol",
+        "0xa11cea1a11cea1a11cea1a11cea1a11cea1a11ce": "alice",
+        "0xb0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0": "bob",
+        "0xca401ca401ca401ca401ca401ca401ca401ca401": "carol",
+    }
+    agent = ADDR_TO_AGENT.get(address.lower(), None)
+    if agent is None:
+        # Unknown address — skip ZK (return partial verify)
+        return {"verified": False, "reason": "unknown_agent", "skipped": True}
+
+    PROJECT_ROOT = Path(__file__).parent.parent.parent
+    script = PROJECT_ROOT / "scripts" / "prove_merit.py"
+
+    try:
+        result = subprocess.run(
+            ["python", str(script), "--agent", agent, "--threshold", str(threshold)],
+            capture_output=True, text=True, timeout=90,
+            cwd=str(PROJECT_ROOT),
+        )
+        output = result.stdout
+        marker = output.find("[Result]")
+        json_start = output.find("{", marker if marker != -1 else 0)
+        if json_start == -1:
+            return {"verified": False, "reason": "no_proof_output"}
+
+        data = json.loads(output[json_start:])
+        if data.get("success"):
+            proof = data.get("proof", {})
+            # Compact hash of proof for logging
+            proof_hash = "0x" + __import__("hashlib").sha256(
+                json.dumps(proof, sort_keys=True).encode()
+            ).hexdigest()[:16]
+            return {
+                "verified": True,
+                "proof_hash": proof_hash,
+                "public_signals": data.get("publicSignals", []),
+                "merkle_root": str(data.get("merkleRoot", "")),
+            }
+        else:
+            return {"verified": False, "reason": data.get("reason", "proof_failed")}
+    except subprocess.TimeoutExpired:
+        return {"verified": False, "reason": "zk_verify_timeout"}
+    except Exception as e:
+        return {"verified": False, "reason": str(e)}
+
+
 async def execute_workflow(address: str, threshold: int) -> str:
     """Execute the EXECUTE step of the KeeperHub 3-step workflow.
 

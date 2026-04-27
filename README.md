@@ -1,6 +1,6 @@
 # MeritScore
 
-> Experian for AI agents — on-chain credit scores that gate DeFi access across 0G + Base.
+> Privacy-preserving credit scores for AI agents — ZK threshold proofs that gate DeFi access across 0G + Base.
 
 > **Built during EthGlobal OpenAgents hackathon — 2026-04-25T01:00+09:00**
 
@@ -26,30 +26,37 @@ MeritScore solves this with **on-chain agent credit scoring**: a decentralized r
 4. **Provides verifiable evidence** (storage anchoring + oracle commit)
 5. **Supports honest-mode badges** (Direct / Workflow / Web3) for agents to self-declare
 
-### Four Sword Architecture
+### Five Pillar Architecture
 
-**Sword #2: TEE Attestation Card**
-- Computes a 3-hash proof: `compute_hash(inference result) + storage_root(evidence) + oracle_commit(scores)`
-- Attestation sealed in Trusted Execution Environment via 0G Compute
-- Storage root anchored to EvidenceRegistry on-chain
-
-**Sword #3: KeeperHub Workflow**
-- CHECK: Request agent evidence from API
-- VALIDATE: Verify attestation + score bounds
-- EXECUTE: Update on-chain merit scores if valid
-
-**Sword #4: AI Enrich**
-- Runs Gemma4 26B via Ollama for sandwich attack detection
-- Classifies agent behavior: `honest / mev_searcher / sandwich_attacker`
-- Feeds classification to merit oracle
-
-**Sword #1: Live Evaluation Button**
+**Pillar #1: Live Evaluation Button** ✅
 - Interactive UI for real-time merit scoring (wallet input field)
 - Displays agent merit scores with AI-powered analysis card
 - Supports named aliases (Alice/Bob/Carol) or arbitrary wallet addresses
 - Live demo at `https://meritscore.warvis.org` (port 61234, Docker)
 - Endpoints: `/merit/{address}` (lookup) + `/analyze` (AI classification)
-- Status: ✅ **DONE** (Docker validated, all API endpoints tested)
+- Status: **DONE** (Docker validated, all API endpoints tested)
+
+**Pillar #2: TEE Attestation Card** ✅
+- Computes a 3-hash proof: `compute_hash(inference result) + storage_root(evidence) + oracle_commit(scores)`
+- Attestation sealed in Trusted Execution Environment via 0G Compute
+- Storage root anchored to EvidenceRegistry on-chain
+
+**Pillar #3: KeeperHub Workflow** ✅
+- CHECK: Request agent evidence from API
+- VALIDATE: Verify attestation + score bounds
+- EXECUTE: Update on-chain merit scores if valid
+
+**Pillar #4: AI Enrich** ✅
+- Runs Gemma4 26B via Ollama for sandwich attack detection
+- Classifies agent behavior: `honest / mev_searcher / sandwich_attacker`
+- Feeds classification to merit oracle
+
+**Pillar #5: ZK Merit Proof (Privacy Tier)** ✅
+- Agents prove merit ≥ threshold WITHOUT revealing actual score
+- Poseidon + Merkle tree + threshold verification in circom
+- Groth16 proofs (~1.5KB, ~200ms)
+- On-chain Solidity verifier (Base Sepolia ready)
+- Privacy guarantee: only merkleRoot + threshold visible on-chain
 
 ---
 
@@ -281,9 +288,9 @@ Returns AI classification: `honest | mev_searcher | sandwich_attacker`
 
 ---
 
-## 4 Sword Features
+## 5 Pillar Features
 
-### ✅ Sword #2: TEE Attestation Card
+### ✅ Pillar #2: TEE Attestation Card
 - Computes 3-hash proof via 0G Compute TeeML
 - Combines: compute result hash + storage root + oracle commit
 - Sealed in Trusted Execution Environment
@@ -293,7 +300,7 @@ Returns AI classification: `honest | mev_searcher | sandwich_attacker`
 - Oracle Commit Tx: `0xd492f5714656eb1199c307c1c67902906a0f946a9113f697e25f05a8e4917b61`
 - Commit Hash: `0x09d34df4fd5c9c75b9970e4fbe0820c2b982466532d5413e1ae3b75fe7a1b4c1`
 
-### ✅ Sword #3: KeeperHub Workflow
+### ✅ Pillar #3: KeeperHub Workflow
 - Implements 3-phase validation: CHECK → VALIDATE → EXECUTE
 - CHECK: Request evidence from agent API
 - VALIDATE: Verify attestation + score bounds
@@ -303,7 +310,7 @@ Returns AI classification: `honest | mev_searcher | sandwich_attacker`
 **Evidence:**
 - Batch Merit Tx: `0x132496633f457fecdabfe7faa8545b55975926a38e841f58d971e975d3348760`
 
-### ✅ Sword #4: AI Enrich (Sandwich Attack Detection)
+### ✅ Pillar #4: AI Enrich (Sandwich Attack Detection)
 - Runs Gemma4 26B model via Ollama
 - Analyzes transaction patterns for sandwich attack signatures
 - Classifies behavior: `honest / mev_searcher / sandwich_attacker`
@@ -313,7 +320,52 @@ Returns AI classification: `honest | mev_searcher | sandwich_attacker`
 **Model:** Gemma4 26B parameter model  
 **Detection:** Transaction timing analysis, MEV patterns, gas bidding behavior
 
-### ⏳ Sword #1: Recovery Path *(future iteration)*
+### ✅ Pillar #5: ZK Merit Proof (Privacy Tier)
+
+**Agents can now prove they meet a merit threshold WITHOUT revealing their score.**
+
+- **Circuit:** Poseidon hash + Merkle tree + threshold comparison (circom 2.2.3)
+- **Proof System:** Groth16 (snarkjs 0.7.6) — ~1.5KB proof size, ~200ms verification
+- **On-Chain Verifier:** Solidity smart contract auto-generated and ready for Base Sepolia
+- **Use Case:** "I certify my score ≥ 5000" without disclosing actual score (e.g., 0.2641 or 0.6703)
+
+**How it works:**
+1. Agent generates witness: (agentAddr, agentScore, merklePath[], merkleRoot, threshold)
+2. Circuit verifies:
+   - agentScore hashes correctly to merkle tree leaf
+   - Leaf is included in merkle tree (proof of membership)
+   - agentScore ≥ threshold (cryptographic comparison)
+3. Prover generates Groth16 proof
+4. On-chain verifier contract validates proof (public inputs: merkleRoot, threshold)
+5. DeFi protocols can gate access without seeing raw scores
+
+**Artifacts:**
+- Circuit: `circuits/merit_threshold.circom` (165 lines, 2470 constraints)
+- R1CS: `circuits/merit_threshold.r1cs` (613K)
+- WASM: `circuits/merit_threshold_js/merit_threshold.wasm` (1.7M)
+- Verifier: `contracts/src/MeritVerifier.sol` (auto-generated, Groth16 Solidity)
+- Prover: `scripts/prove_merit.py` (Python CLI, supports alice/bob/carol agents)
+- UI: Streamlit tab with proof generation button + merkle root display
+
+**Demo:**
+```bash
+# Bob (score=6703) proves merit ≥ 5000
+python scripts/prove_merit.py --agent bob --threshold 5000
+# Output: proof + publicSignals (merkleRoot, threshold)
+
+# Alice (score=2641) fails to prove merit ≥ 5000 (expected)
+python scripts/prove_merit.py --agent alice --threshold 5000
+# Output: "Agent alice score 2641 < threshold 5000: proof cannot be generated"
+```
+
+**Privacy guarantee:** On-chain verifier only learns:
+- merkleRoot (commitment to agent set)
+- threshold (chosen by protocol)
+- Proof is valid (cryptographic proof)
+
+Agent's actual score remains **completely hidden**.
+
+### ⏳ Pillar #1: Recovery Path *(future iteration)*
 - Agent appeal mechanism
 - Score dispute resolution
 - Graduated restoration for reformed actors
@@ -362,15 +414,6 @@ Returns AI classification: `honest | mev_searcher | sandwich_attacker`
 
 ## Economics: MeritScore as a Credit Platform
 
-### Market Opportunity
-
-**Total Addressable Market (TAM):** $36.5M
-
-- **AI Agent Economy:** $120B annual DeFi transaction volume (agents)
-- **Credit Scoring Penetration:** 30% of volume requiring quality gates
-- **Average Price Point:** $0.10 per merit score query
-- **Implied Volume:** 365M queries annually at $0.10/query = $36.5M TAM
-
 ### Pricing Model
 
 | Tier | Query Limit | Price | Use Case |
@@ -390,7 +433,6 @@ Returns AI classification: `honest | mev_searcher | sandwich_attacker`
 |--------|--------|----------|
 | Agents Indexed | 1,000+ | 6 months |
 | Daily Queries | 100K+ | 6 months |
-| Revenue Run Rate | $3.65M | 12 months |
 | Supported Chains | 5+ (0G, Base, Arbitrum, Optimism, Ethereum) | 12 months |
 
 ### Competitive Advantage

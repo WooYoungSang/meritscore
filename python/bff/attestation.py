@@ -14,6 +14,7 @@ import asyncio
 import hashlib
 import logging
 import os
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -27,14 +28,18 @@ RPC_GALILEO = os.getenv("RPC_GALILEO", "https://evmrpc-testnet.0g.ai")
 OG_PRIVATE_KEY = os.getenv("OG_PRIVATE_KEY")
 
 
-# ── Mock helpers ────────────────────────────────────────────────────────────
+# ── Mock helpers (with timestamp nonce for uniqueness) ────────────────────
 
 def _mock_compute_hash() -> str:
-    return "0x" + hashlib.sha256(b"proof-of-merit-bff-attestation").hexdigest()
+    """Generate a unique compute hash per call using current timestamp."""
+    nonce = str(time.time()).encode()
+    return "0x" + hashlib.sha256(b"proof-of-merit-bff-attestation" + nonce).hexdigest()
 
 
 def _mock_storage_root() -> str:
-    return "0x" + hashlib.sha256(b"proof-of-merit-storage-root").hexdigest()
+    """Generate a unique storage root per call using current timestamp."""
+    nonce = str(time.time()).encode()
+    return "0x" + hashlib.sha256(b"proof-of-merit-storage-root" + nonce).hexdigest()
 
 
 # ── Real 0G Compute call ───────────────────────────────────────────────────

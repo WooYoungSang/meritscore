@@ -244,6 +244,15 @@ function WorkflowTab({ agentMeta }) {
       }, 1100);
 
       setTimeout(() => {
+        const zk_verified = data.zk_verify?.verified || data.zk_verify?.skipped;
+        pushLog(`${zk_verified ? "✓" : "✗"} ZK_VERIFY — Merkle proof ${data.zk_verify?.skipped ? "skipped (unknown agent)" : zk_verified ? "verified" : "failed"}`, zk_verified ? "ok" : "err");
+        if (data.zk_verify?.proof_hash) {
+          pushLog(`  proof: ${data.zk_verify.proof_hash} · merkle_root: ${data.zk_verify.merkle_root?.slice(0, 16)}…`, "info");
+        }
+        setStep(3);
+      }, 1550);
+
+      setTimeout(() => {
         const approved = data.execute === "OK" || (data.check && data.validate);
         if (approved) {
           pushLog(`✓ EXECUTE — capital access granted`, "ok");
@@ -254,7 +263,7 @@ function WorkflowTab({ agentMeta }) {
           setResult(data.check && data.validate ? "approved" : "rejected");
         }
         setStep(-2); setRunning(false);
-      }, 1900);
+      }, 2400);
 
     } catch (e) {
       pushLog(`✗ BFF unreachable: ${e.message}`, "err");
@@ -302,7 +311,7 @@ function WorkflowTab({ agentMeta }) {
             {running ? "RUNNING…" : "▶  RUN WORKFLOW"}
           </button>
           <div className="wf-caption">
-            Powered by <span style={{color:"#d5deea"}}>KeeperHub</span> · CHECK → VALIDATE → EXECUTE
+            Powered by <span style={{color:"#d5deea"}}>KeeperHub</span> · CHECK → VALIDATE → ZK_VERIFY → EXECUTE
           </div>
         </div>
 
@@ -312,11 +321,11 @@ function WorkflowTab({ agentMeta }) {
             <span>{agentMeta?.name || "—"}</span>
           </div>
           <div className="step-row">
-            {["CHECK","VALIDATE","EXECUTE"].map((name, i) => (
+            {["CHECK","VALIDATE","ZK_VERIFY","EXECUTE"].map((name, i) => (
               <React.Fragment key={name}>
                 {i > 0 && <div className="arrow">→</div>}
                 <div className={`step ${stepState(i)}`}>
-                  <div className="step-name">{name}</div>
+                  <div className="step-name">{name === "ZK_VERIFY" ? "🔐 ZK VERIFY" : name}</div>
                   <div className="step-icon">{stepIcon(i)}</div>
                 </div>
               </React.Fragment>
@@ -440,7 +449,7 @@ function LiveEvalTab() {
           <div className="eval-ai-result">
             <div className="eval-ai-title">
               <span style={{ color: "var(--accent)", fontWeight: 600 }}>AI Analysis</span>
-              <span className="sword">SWORD #4</span>
+              <span className="sword">PILLAR #4</span>
             </div>
             {result.analyze ? (
               <>
@@ -501,7 +510,7 @@ function ZKProofTab({ agentMeta }) {
   return (
     <div style={{ padding: "24px", fontFamily: "'JetBrains Mono', monospace" }}>
       <div style={{ marginBottom: 16, color: "var(--text-dim)", fontSize: 13 }}>
-        <span className="sword">SWORD #5</span> — Groth16 ZK proof that agent merit score ≥ threshold, without revealing the score.
+        <span className="sword">PILLAR #5</span> — Privacy-preserving merit proof: agents prove score ≥ threshold WITHOUT revealing the actual score. Cryptographic guarantee via Groth16 on BN254.
       </div>
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20 }}>
         <span style={{ color: "var(--accent)" }}>agent:</span>
@@ -627,7 +636,7 @@ function App() {
               W<span>.</span>A<span>.</span>R<span>.</span>V<span>.</span>I<span>.</span>S
             </h1>
             <p style={{fontWeight: 600, letterSpacing: "0.22em", fontSize: "11px", textTransform: "uppercase", color: "var(--accent)", marginBottom: "6px"}}>A Rather Very Intelligent System</p>
-            <p>MeritScore — On-chain credit scores for AI agents · 0G + Base</p>
+            <p>MeritScore — Privacy-preserving credit scores for AI agents · ZK Proofs · 0G + Base</p>
           </div>
         </div>
         <div className="pills">
@@ -660,16 +669,16 @@ function App() {
       <div className="tabs-wrap">
         <div className="tabs-bar">
           <button className={`tab-btn ${tab === "live" ? "active" : ""}`} onClick={() => setTab("live")}>
-            ⚡ Live Eval <span className="sword">SWORD #1</span>
+            ⚡ Live Eval <span className="sword">PILLAR #1</span>
           </button>
           <button className={`tab-btn ${tab === "tee" ? "active" : ""}`} onClick={() => setTab("tee")}>
-            🔐 TEE Attestation <span className="sword">SWORD #2</span>
+            🔐 TEE Attestation <span className="sword">PILLAR #2</span>
           </button>
           <button className={`tab-btn ${tab === "wf" ? "active" : ""}`} onClick={() => setTab("wf")}>
-            ⚡ KH Workflow <span className="sword">SWORD #3</span>
+            ⚡ KH Workflow <span className="sword">PILLAR #3</span>
           </button>
           <button className={`tab-btn ${tab === "zk" ? "active" : ""}`} onClick={() => setTab("zk")}>
-            🔏 ZK Proof <span className="sword">SWORD #5</span>
+            🔏 ZK Proof <span className="sword">PILLAR #5</span>
           </button>
         </div>
         <div className="tab-body">
