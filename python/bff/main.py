@@ -1,5 +1,6 @@
 """FastAPI Backend for Frontend - Proof-of-Merit Hackathon."""
 
+import asyncio
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -14,6 +15,7 @@ from .chain import health_check, get_merit
 from .attestation import get_attestation_data
 from .workflow import check_and_validate_merit, execute_workflow
 from .sandwich_detector import detect_sandwich_llm
+from .agent_loop import merit_guard_loop, get_state
 
 # Load environment variables
 load_dotenv()
@@ -22,15 +24,31 @@ load_dotenv()
 RPC_GALILEO = os.getenv("RPC_GALILEO", "https://evmrpc-testnet.0g.ai")
 RPC_BASE_SEPOLIA = os.getenv("RPC_BASE_SEPOLIA", "https://sepolia.base.org")
 
+# Global background task reference
+_merit_guard_task = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan events: startup and shutdown."""
+    global _merit_guard_task
+
     # Startup
     print("BFF server starting...")
+    _merit_guard_task = asyncio.create_task(merit_guard_loop())
+    print("MeritGuard autonomous agent started")
+
     yield
+
     # Shutdown
     print("BFF server shutting down...")
+    if _merit_guard_task:
+        _merit_guard_task.cancel()
+        try:
+            await _merit_guard_task
+        except asyncio.CancelledError:
+            pass
+    print("MeritGuard autonomous agent stopped")
 
 
 app = FastAPI(
@@ -248,6 +266,57 @@ async def analyze(request_body: dict):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/zk-proof")
+async def zk_proof(body: dict):
+    """
+    Generate ZK merit proof (Sword #5).
+
+    Body: { "agent": "bob", "threshold": 5000 }
+    Returns: { success, proof, publicSignals, merkleRoot, metadata }
+    """
+    import subprocess
+    import json
+
+    agent = body.get("agent", "bob")
+    threshold = int(body.get("threshold", 5000))
+
+    _PROJECT_ROOT = Path(__file__).parent.parent.parent
+    script = _PROJECT_ROOT / "scripts" / "prove_merit.py"
+
+    try:
+        result = subprocess.run(
+            ["python", str(script), "--agent", agent, "--threshold", str(threshold)],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            cwd=str(_PROJECT_ROOT),
+        )
+        # Output: log lines, then "\n[Result]\n{...}"
+        output = result.stdout
+        marker = output.find("[Result]")
+        json_start = output.find("{", marker if marker != -1 else 0)
+        if json_start == -1:
+            raise RuntimeError(f"No JSON in output: {result.stderr or output}")
+        proof_data = json.loads(output[json_start:])
+        return proof_data
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="ZK proof generation timed out")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/agent-loop/status")
+async def agent_loop_status():
+    """
+    Get MeritGuard autonomous agent status (Sword #5 bonus).
+
+    Returns:
+        {running, last_scan, scan_interval_seconds, agents_checked, flagged, actions}
+    """
+    state = get_state()
+    return state.to_dict()
 
 
 if __name__ == "__main__":

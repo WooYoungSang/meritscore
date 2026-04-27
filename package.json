@@ -1,0 +1,17 @@
+{
+  "name": "warvis-zk",
+  "version": "0.1.0",
+  "description": "ZK Merit Proof circuits and provers for warvis",
+  "scripts": {
+    "build:circuits": "circom circuits/merit_threshold.circom --r1cs --wasm --sym -o circuits/",
+    "setup:powers": "snarkjs powersoftau new bn128 14 pot14_0000.ptau",
+    "prove": "python scripts/prove_merit.py"
+  },
+  "devDependencies": {
+    "circomlib": "^2.0.5",
+    "snarkjs": "^0.7.6"
+  },
+  "dependencies": {
+    "circomlibjs": "^0.1.7"
+  }
+}

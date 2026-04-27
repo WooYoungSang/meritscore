@@ -18,9 +18,16 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry config virtualenvs.create false \
  && poetry install --only main --no-root --no-interaction --no-ansi
 
+# Install ZK proof node dependencies
+COPY package.json package-lock.json ./
+RUN npm install
+
 # Copy source
 COPY python/ ./python/
 COPY contracts/out/ ./contracts/out/
+COPY scripts/ ./scripts/
+COPY circuits/merit_threshold_js/ ./circuits/merit_threshold_js/
+COPY merit_final.zkey verification_key.json ./
 
 ENV HOST=0.0.0.0
 ENV PORT=61234

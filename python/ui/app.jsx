@@ -472,6 +472,91 @@ function LiveEvalTab() {
   );
 }
 
+// ---------- ZK Proof Tab (Sword #5) ----------
+function ZKProofTab({ agentMeta }) {
+  const [threshold, setThreshold] = useState(5000);
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const agent = agentMeta?.id || "bob";
+
+  const generateProof = async () => {
+    setRunning(true); setResult(null); setError(null);
+    try {
+      const res = await fetch(`${BFF}/zk-proof`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agent, threshold }),
+      });
+      const data = await res.json();
+      setResult(data);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: "24px", fontFamily: "'JetBrains Mono', monospace" }}>
+      <div style={{ marginBottom: 16, color: "var(--text-dim)", fontSize: 13 }}>
+        <span className="sword">SWORD #5</span> — Groth16 ZK proof that agent merit score ≥ threshold, without revealing the score.
+      </div>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20 }}>
+        <span style={{ color: "var(--accent)" }}>agent:</span>
+        <span style={{ color: "#fff" }}>{agent}</span>
+        <span style={{ color: "var(--accent)", marginLeft: 16 }}>threshold:</span>
+        <input
+          type="number" min={0} max={9999} value={threshold}
+          onChange={e => setThreshold(parseInt(e.target.value) || 0)}
+          style={{ width: 80, background: "#1a2633", border: "1px solid var(--border)", color: "#fff", padding: "4px 8px", borderRadius: 4, fontFamily: "inherit" }}
+        />
+        <button
+          onClick={generateProof} disabled={running}
+          className="tab-btn active"
+          style={{ marginLeft: 8, padding: "6px 18px", cursor: running ? "wait" : "pointer" }}
+        >
+          {running ? "⏳ Proving…" : "🔐 Generate ZK Proof"}
+        </button>
+      </div>
+
+      {running && (
+        <div style={{ color: "var(--text-dim)", fontSize: 12 }}>
+          Building depth-8 Merkle tree → computing Groth16 witness → generating proof…
+        </div>
+      )}
+      {error && <div style={{ color: "#ff4d4d", fontSize: 13 }}>Error: {error}</div>}
+      {result && (
+        <div style={{ fontSize: 12 }}>
+          {result.success ? (
+            <>
+              <div style={{ color: "#00c851", marginBottom: 12, fontSize: 14 }}>
+                ✅ Proof verified on-chain ready
+              </div>
+              <div style={{ color: "var(--text-dim)", marginBottom: 6 }}>
+                Public signals: merkleRoot + threshold (score stays private)
+              </div>
+              <div style={{ background: "#0b1218", border: "1px solid var(--border)", borderRadius: 6, padding: 12, overflowX: "auto" }}>
+                <div style={{ color: "#5ce8ff", marginBottom: 4 }}>merkleRoot</div>
+                <div style={{ color: "#b0c4d4", wordBreak: "break-all", marginBottom: 8 }}>{result.publicSignals?.[0]}</div>
+                <div style={{ color: "#5ce8ff", marginBottom: 4 }}>π_a (proof point)</div>
+                <div style={{ color: "#b0c4d4", wordBreak: "break-all", marginBottom: 8 }}>{result.proof?.pi_a?.[0]?.slice(0, 40)}…</div>
+                <div style={{ color: "#5ce8ff", marginBottom: 4 }}>protocol</div>
+                <div style={{ color: "#b0c4d4" }}>{result.proof?.protocol} · {result.proof?.curve} · gas ~{result.metadata?.verificationGas}</div>
+              </div>
+            </>
+          ) : (
+            <div style={{ color: "#ff4d4d" }}>
+              ❌ Cannot prove: {result.reason}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------- App ----------
 function App() {
   const [selectedId, setSelectedId] = useState("bob");
@@ -479,8 +564,9 @@ function App() {
   const [scores, setScores] = useState({});
   const [attestation, setAttestation] = useState(null);
   const [chain, setChain] = useState({ galileo: null, base: null });
+  const [agentLoopStatus, setAgentLoopStatus] = useState(null);
 
-  // Fetch health + scores + attestation on mount
+  // Fetch health + scores + attestation + agent-loop status on mount + poll
   useEffect(() => {
     fetch(`${BFF}/health`)
       .then(r => r.json())
@@ -504,6 +590,17 @@ function App() {
       });
       setScores(s);
     });
+
+    // Fetch agent-loop status and poll every 10 seconds
+    const fetchAgentLoopStatus = () => {
+      fetch(`${BFF}/agent-loop/status`)
+        .then(r => r.json())
+        .then(d => setAgentLoopStatus(d))
+        .catch(() => {});
+    };
+    fetchAgentLoopStatus();
+    const interval = setInterval(fetchAgentLoopStatus, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const selected = AGENTS_META.find(a => a.id === selectedId);
@@ -534,6 +631,12 @@ function App() {
           </div>
         </div>
         <div className="pills">
+          {agentLoopStatus?.running && (
+            <span className="chain-pill" style={{background: "rgba(0, 200, 81, 0.1)", borderColor: "rgba(0, 200, 81, 0.4)"}}>
+              <span className="dot" style={{background: "#00c851"}}></span>
+              ⚡ MeritGuard
+            </span>
+          )}
           <span className={pillCls(chain.galileo)}>
             <span className="dot"></span>0G Galileo
           </span>
@@ -565,11 +668,15 @@ function App() {
           <button className={`tab-btn ${tab === "wf" ? "active" : ""}`} onClick={() => setTab("wf")}>
             ⚡ KH Workflow <span className="sword">SWORD #3</span>
           </button>
+          <button className={`tab-btn ${tab === "zk" ? "active" : ""}`} onClick={() => setTab("zk")}>
+            🔏 ZK Proof <span className="sword">SWORD #5</span>
+          </button>
         </div>
         <div className="tab-body">
           {tab === "live" ? <LiveEvalTab /> :
            tab === "tee" ? <TEETab attestation={attestation} /> :
-           <WorkflowTab agentMeta={selected} />}
+           tab === "wf" ? <WorkflowTab agentMeta={selected} /> :
+           <ZKProofTab agentMeta={selected} />}
         </div>
       </div>
 
