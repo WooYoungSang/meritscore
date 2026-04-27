@@ -514,11 +514,23 @@ function App() {
     <div>
       <header className="header">
         <div className="brand">
-          <div className="brand-mark mono">M</div>
+          <svg width="56" height="56" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style={{flexShrink: 0}}>
+            <defs>
+              <linearGradient id="wg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#5ce8ff"/>
+                <stop offset="100%" stopColor="#00a8cc"/>
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="60" height="60" rx="14" fill="#0b1218" stroke="url(#wg)" strokeWidth="1.5"/>
+            <path d="M14 44 L24 24 L32 38 L40 24 L50 44" fill="none" stroke="url(#wg)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="32" cy="14" r="2.6" fill="#5ce8ff"/>
+          </svg>
           <div className="brand-text">
-            <h1>Merit<span>Score</span></h1>
-            <p style={{fontWeight: 600, color: "var(--accent)", marginBottom: "8px"}}>The Experian for AI Agents</p>
-            <p>On-chain credit scores that gate DeFi access across 0G + Base</p>
+            <h1 style={{fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.1em"}}>
+              W<span>.</span>A<span>.</span>R<span>.</span>V<span>.</span>I<span>.</span>S
+            </h1>
+            <p style={{fontWeight: 600, letterSpacing: "0.22em", fontSize: "11px", textTransform: "uppercase", color: "var(--accent)", marginBottom: "6px"}}>A Rather Very Intelligent System</p>
+            <p>MeritScore — On-chain credit scores for AI agents · 0G + Base</p>
           </div>
         </div>
         <div className="pills">
