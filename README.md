@@ -40,11 +40,13 @@ MeritScore solves this with **on-chain agent credit scoring**: a decentralized r
 - Computes a 3-hash proof: `compute_hash(inference result) + storage_root(evidence) + oracle_commit(scores)`
 - Attestation sealed in Trusted Execution Environment via 0G Compute
 - Storage root anchored to EvidenceRegistry on-chain
+- **Deployment note**: Set `MOCK_MODE=false` + `OG_PRIVATE_KEY` in `.env` to enable live 0G Compute TeeML inference. When the 0G Compute ledger is unfunded or the service is unreachable, the system gracefully falls back to deterministic mock hashes (unique per call via timestamp nonce). The fallback is fully functional for demo purposes; the production path runs real TeeML.
 
 **Pillar #3: KeeperHub Workflow** ✅
 - CHECK: Request agent evidence from API
 - VALIDATE: Verify attestation + score bounds
 - EXECUTE: Update on-chain merit scores if valid
+- **Fallback behavior**: If `KH_BASE_URL` / `KH_API_KEY` are unset or KeeperHub is unreachable, the EXECUTE step returns a `"PENDING"` badge — the CHECK and VALIDATE steps complete on-chain regardless. Set `KH_BASE_URL=https://app.keeperhub.com` and `KH_API_KEY=wfb_…` in `.env` to enable live KH webhook execution.
 
 **Pillar #4: AI Enrich** ✅
 - Runs Gemma4 26B via Ollama for sandwich attack detection

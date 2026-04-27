@@ -261,8 +261,12 @@ async def analyze(request_body: dict):
             address, tx_history, mode="Direct"
         )
 
-        # Mark Carol and Alice and their addresses as adversarial (sandwich MEV attack patterns)
-        is_adversarial = address.lower() in [
+        # Demo agents have pre-seeded on-chain scores derived from known tx history.
+        # is_adversarial acts as a ground-truth override when the LLM hasn't already
+        # flagged them (gaming_detected=False) — e.g. when Ollama is unavailable and
+        # the heuristic fallback misses the pattern. For arbitrary addresses, this
+        # flag is always False so the Gemma 4 / heuristic result drives the verdict.
+        is_adversarial = not gaming_detected and address.lower() in [
             "carol", "0xca401ca401ca401ca401ca401ca401ca401ca401",
             "alice", "0xa11cea1a11cea1a11cea1a11cea1a11cea1a11ce",
             "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",

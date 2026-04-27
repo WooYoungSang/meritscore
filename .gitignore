@@ -29,3 +29,9 @@ dist/
 .pytest_cache/
 .ruff_cache/
 ai-logs/
+
+# ZK ceremony intermediate files (large, regeneratable)
+pot14_0000.ptau
+pot14_0001.ptau
+pot14_final.ptau
+merit_0000.zkey

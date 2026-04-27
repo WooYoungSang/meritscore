@@ -450,6 +450,7 @@ function LiveEvalTab() {
             <div className="eval-ai-title">
               <span style={{ color: "var(--accent)", fontWeight: 600 }}>AI Analysis</span>
               <span className="sword">PILLAR #4</span>
+              <span style={{ color: "var(--text-mute)", fontSize: "0.68rem", marginLeft: 8 }}>Gemma 4 26B · Ollama</span>
             </div>
             {result.analyze ? (
               <>
@@ -477,6 +478,229 @@ function LiveEvalTab() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------- AI Sandwich Detection Tab (Pillar #4) ----------
+function AIAnalysisTab({ agentMeta }) {
+  const [addr, setAddr] = useState(agentMeta?.address || agentMeta?.id || "");
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => { setAddr(agentMeta?.id || agentMeta?.address || ""); }, [agentMeta?.id]);
+
+  const analyze = async () => {
+    if (!addr.trim() || running) return;
+    setRunning(true); setResult(null); setError(null);
+    try {
+      const res = await fetch(`${BFF}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: addr.trim(), tx_history: [] }),
+      });
+      const data = await res.json();
+      setResult(data);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const gaming = result?.gaming_detected;
+  const adversarial = result?.adversarial_agent;
+
+  return (
+    <div style={{ padding: "24px", fontFamily: "'JetBrains Mono', monospace" }}>
+      <div style={{ marginBottom: 16, color: "var(--text-dim)", fontSize: 13 }}>
+        <span className="sword">PILLAR #4</span> — Gemma 4 26B via Ollama detects sandwich MEV attack patterns in agent transaction history. AI classification feeds directly into the merit oracle.
+      </div>
+      <div style={{ marginBottom: 8, color: "var(--text-mute)", fontSize: 11 }}>
+        powered by <span style={{ color: "#5ce8ff" }}>Gemma 4 26B</span> · Ollama · heuristic fallback
+      </div>
+
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 20 }}>
+        <input
+          type="text"
+          value={addr}
+          onChange={e => setAddr(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && analyze()}
+          placeholder="alice / bob / carol  —  or 0x address"
+          spellCheck={false}
+          style={{
+            flex: 1, background: "#0b1218", border: "1px solid var(--border)",
+            color: "#fff", padding: "8px 12px", borderRadius: 6,
+            fontFamily: "inherit", fontSize: 13
+          }}
+        />
+        <button
+          onClick={analyze} disabled={running}
+          className={`eval-btn${running ? " running" : ""}`}
+          style={{ whiteSpace: "nowrap" }}
+        >
+          {running ? <><span className="spinner" /><span>ANALYZING…</span></> : "🤖  ANALYZE"}
+        </button>
+      </div>
+
+      {error && <div style={{ color: "#ff4d4d", fontSize: 13, marginBottom: 12 }}>Error: {error}</div>}
+
+      {result && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{
+            background: gaming ? "rgba(255,68,68,0.08)" : "rgba(0,200,81,0.07)",
+            border: `1px solid ${gaming ? "rgba(255,68,68,0.35)" : "rgba(0,200,81,0.3)"}`,
+            borderRadius: 10, padding: "18px 22px"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+              <span style={{ fontSize: 24 }}>{gaming ? "⚠️" : "✅"}</span>
+              <div>
+                <div style={{ color: gaming ? "#ff6666" : "#00c851", fontWeight: 700, fontSize: 16 }}>
+                  {gaming ? "SANDWICH ATTACK DETECTED" : "NO GAMING PATTERN"}
+                </div>
+                {adversarial && (
+                  <div style={{ color: "#ff4444", fontSize: 11, marginTop: 2 }}>ADVERSARIAL AGENT — ground-truth confirmed</div>
+                )}
+              </div>
+            </div>
+            {result.reason && (
+              <div style={{ color: "var(--text-dim)", fontSize: 13, lineHeight: 1.6, marginBottom: 10 }}>
+                {result.reason}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 20, fontSize: 12 }}>
+              <span style={{ color: "var(--text-mute)" }}>merit_penalty: <span style={{ color: gaming ? "#ff8888" : "#00c851" }}>{result.merit_penalty ?? 0}</span></span>
+              <span style={{ color: "var(--text-mute)" }}>mode: <span style={{ color: "var(--accent)" }}>{result.mode}</span></span>
+              <span style={{ color: "var(--text-mute)" }}>address: <span className="mono" style={{ color: "#d5deea" }}>{result.address?.slice(0, 14)}…</span></span>
+            </div>
+          </div>
+
+          <div style={{
+            background: "#0b1218", border: "1px solid var(--border)",
+            borderRadius: 8, padding: "14px 18px", fontSize: 12
+          }}>
+            <div style={{ color: "var(--text-dim)", marginBottom: 10, fontWeight: 600 }}>How it works</div>
+            <div style={{ color: "var(--text-mute)", lineHeight: 1.8 }}>
+              1. Agent tx history fetched (or demo history used for named agents)<br/>
+              2. Gemma 4 26B prompt: detect frontrun/backrun sandwich pairs, same-block gas manipulation<br/>
+              3. If Ollama unavailable → heuristic fallback (keyword + block pattern detection)<br/>
+              4. Result feeds into <span style={{ color: "var(--accent)" }}>merit_penalty</span> applied to on-chain score
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!result && !running && !error && (
+        <div style={{ color: "var(--text-mute)", fontSize: 13, marginTop: 8 }}>
+          Try <code className="mono">carol</code> to see a detected sandwich attack, or <code className="mono">bob</code> for a clean agent.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- MeritGuard Autonomous Agent Tab ----------
+function MeritGuardTab({ agentLoopStatus }) {
+  const status = agentLoopStatus;
+  const running = status?.running;
+  const lastScan = status?.last_scan ? new Date(status.last_scan + "Z").toLocaleTimeString("en-GB", { hour12: false }) : "—";
+  const actions = status?.actions || [];
+  const flagged = status?.flagged || [];
+
+  return (
+    <div style={{ padding: "24px", fontFamily: "'JetBrains Mono', monospace" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          background: running ? "rgba(0,200,81,0.1)" : "rgba(91,102,117,0.15)",
+          border: `1px solid ${running ? "rgba(0,200,81,0.4)" : "rgba(91,102,117,0.3)"}`,
+          borderRadius: 8, padding: "8px 16px"
+        }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: "50%",
+            background: running ? "#00c851" : "#5b6675",
+            boxShadow: running ? "0 0 6px #00c851" : "none",
+            display: "inline-block"
+          }} />
+          <span style={{ color: running ? "#00c851" : "var(--text-mute)", fontWeight: 600 }}>
+            {running ? "RUNNING" : "STOPPED"}
+          </span>
+        </div>
+        <div style={{ color: "var(--text-dim)", fontSize: 12 }}>
+          Scans every <span style={{ color: "var(--accent)" }}>60s</span> · threshold{" "}
+          <span style={{ color: "var(--accent)" }}>0.30</span> · last scan{" "}
+          <span style={{ color: "#d5deea" }}>{lastScan}</span>
+        </div>
+        <div style={{ marginLeft: "auto", color: "var(--text-mute)", fontSize: 11 }}>
+          powered by <span style={{ color: "var(--accent)" }}>0G Galileo</span> · autonomous loop
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
+        {[
+          { label: "Agents Monitored", value: status?.agents_checked ?? 3, color: "#5ce8ff" },
+          { label: "Flagged (< 0.30)", value: flagged.length, color: flagged.length > 0 ? "#ff4444" : "#00c851" },
+          { label: "KH Actions Triggered", value: actions.length, color: "#d5deea" },
+        ].map(({ label, value, color }) => (
+          <div key={label} style={{
+            background: "#0b1218", border: "1px solid var(--border)",
+            borderRadius: 8, padding: "14px 18px"
+          }}>
+            <div style={{ color: "var(--text-mute)", fontSize: 11, marginBottom: 6 }}>{label}</div>
+            <div style={{ color, fontSize: 26, fontWeight: 700 }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      {flagged.length > 0 && (
+        <div style={{
+          background: "rgba(255,68,68,0.08)", border: "1px solid rgba(255,68,68,0.3)",
+          borderRadius: 8, padding: "10px 16px", marginBottom: 20, fontSize: 13
+        }}>
+          <span style={{ color: "#ff4444", fontWeight: 600 }}>⚠ Flagged agents: </span>
+          <span style={{ color: "#ffaaaa" }}>{flagged.join(", ")}</span>
+          <span style={{ color: "var(--text-mute)", marginLeft: 8 }}>→ KH_EXECUTE triggered</span>
+        </div>
+      )}
+
+      <div style={{ color: "var(--text-dim)", fontSize: 12, marginBottom: 10, fontWeight: 600 }}>
+        Action Log — last {Math.min(actions.length, 20)} events
+      </div>
+      <div style={{
+        background: "#0b1218", border: "1px solid var(--border)", borderRadius: 8,
+        padding: "12px 16px", maxHeight: 320, overflowY: "auto", fontSize: 12
+      }}>
+        {actions.length === 0 ? (
+          <div style={{ color: "var(--text-mute)" }}>No actions yet — waiting for next scan cycle…</div>
+        ) : (
+          [...actions].reverse().slice(0, 20).map((a, i) => (
+            <div key={i} style={{
+              display: "flex", gap: 12, alignItems: "flex-start",
+              padding: "5px 0", borderBottom: i < Math.min(actions.length, 20) - 1 ? "1px solid rgba(255,255,255,0.04)" : "none"
+            }}>
+              <span style={{ color: "var(--text-mute)", minWidth: 80 }}>
+                {a.at ? new Date(a.at + "Z").toLocaleTimeString("en-GB", { hour12: false }) : "—"}
+              </span>
+              <span style={{ color: "#ff8888", minWidth: 50 }}>{a.agent}</span>
+              <span style={{ color: "var(--text-mute)" }}>score=</span>
+              <span style={{ color: a.score < 0.1 ? "#ff4444" : "#ffaa44" }}>{(a.score || 0).toFixed(4)}</span>
+              <span style={{ color: "var(--text-mute)" }}>→</span>
+              <span style={{ color: "#5ce8ff" }}>{a.action}</span>
+              <span className={`mode-pill ${a.result === "OK" ? "web3" : "direct"}`} style={{ fontSize: 10 }}>
+                {a.result || "PENDING"}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div style={{ marginTop: 16, color: "var(--text-mute)", fontSize: 11, lineHeight: 1.7 }}>
+        MeritGuard autonomously monitors on-chain merit scores via{" "}
+        <span style={{ color: "var(--accent)" }}>MeritCore (0G Galileo)</span> and triggers{" "}
+        <span style={{ color: "var(--accent)" }}>KeeperHub</span> workflows for any agent below the risk threshold.
+        This is fully autonomous — no human intervention required.
+      </div>
     </div>
   );
 }
@@ -622,14 +846,42 @@ function App() {
         <div className="brand">
           <svg width="56" height="56" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style={{flexShrink: 0}}>
             <defs>
-              <linearGradient id="wg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+              <linearGradient id="wg" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#5ce8ff"/>
                 <stop offset="100%" stopColor="#00a8cc"/>
               </linearGradient>
+              <radialGradient id="wcore" cx="0.5" cy="0.5" r="0.5">
+                <stop offset="0%"   stopColor="#e8fbff" stopOpacity="1"/>
+                <stop offset="30%"  stopColor="#5ce8ff" stopOpacity="0.85"/>
+                <stop offset="70%"  stopColor="#00a8cc" stopOpacity="0.25"/>
+                <stop offset="100%" stopColor="#00a8cc" stopOpacity="0"/>
+              </radialGradient>
+              <style>{`
+                @keyframes wh{0%,100%{opacity:.2}50%{opacity:.45}}
+                @keyframes wc{0%,100%{opacity:.4}50%{opacity:.7}}
+                .wh{animation:wh 3.2s infinite}
+                .wc{animation:wc 2.4s infinite}
+              `}</style>
             </defs>
-            <rect x="2" y="2" width="60" height="60" rx="14" fill="#0b1218" stroke="url(#wg)" strokeWidth="1.5"/>
-            <path d="M14 44 L24 24 L32 38 L40 24 L50 44" fill="none" stroke="url(#wg)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/>
-            <circle cx="32" cy="14" r="2.6" fill="#5ce8ff"/>
+            <circle cx="32" cy="32" r="30" fill="url(#wcore)" opacity="0.2" className="wh"/>
+            <circle cx="32" cy="32" r="30" fill="#0b1218" stroke="url(#wg)" strokeWidth="1.8"/>
+            <circle cx="32" cy="32" r="27" fill="none" stroke="url(#wg)" strokeWidth="0.7" opacity="0.55"/>
+            <g stroke="url(#wg)" strokeWidth="1" strokeLinecap="round" opacity="0.7">
+              <line x1="32" y1="2"    x2="32" y2="6"/>
+              <line x1="32" y1="58"   x2="32" y2="62"/>
+              <line x1="2"  y1="32"   x2="6"  y2="32"/>
+              <line x1="58" y1="32"   x2="62" y2="32"/>
+              <line x1="10.8" y1="10.8" x2="13.6" y2="13.6"/>
+              <line x1="50.4" y1="50.4" x2="53.2" y2="53.2"/>
+              <line x1="50.4" y1="13.6" x2="53.2" y2="10.8"/>
+              <line x1="10.8" y1="53.2" x2="13.6" y2="50.4"/>
+            </g>
+            <circle cx="32" cy="30" r="16" fill="url(#wcore)" opacity="0.4" className="wc"/>
+            <path d="M12 17 L52 17 L32 52 Z" fill="#0b1218" stroke="url(#wg)" strokeWidth="2.4" strokeLinejoin="round"/>
+            <path d="M16.5 19.5 L47.5 19.5 L32 47 Z" fill="none" stroke="url(#wg)" strokeWidth="0.7" strokeLinejoin="round" opacity="0.5"/>
+            <path d="M21 23 L26 33 L32 26 L38 33 L43 23" fill="none" stroke="#e8fbff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" filter="drop-shadow(0 0 1.6px #5ce8ff)"/>
+            <circle cx="32" cy="42" r="2" fill="#ffffff"/>
+            <circle cx="32" cy="42" r="4" fill="#5ce8ff" opacity="0.4"/>
           </svg>
           <div className="brand-text">
             <h1 style={{fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.1em"}}>
@@ -677,15 +929,24 @@ function App() {
           <button className={`tab-btn ${tab === "wf" ? "active" : ""}`} onClick={() => setTab("wf")}>
             ⚡ KH Workflow <span className="sword">PILLAR #3</span>
           </button>
+          <button className={`tab-btn ${tab === "ai" ? "active" : ""}`} onClick={() => setTab("ai")}>
+            🤖 AI Analysis <span className="sword">PILLAR #4</span>
+          </button>
           <button className={`tab-btn ${tab === "zk" ? "active" : ""}`} onClick={() => setTab("zk")}>
             🔏 ZK Proof <span className="sword">PILLAR #5</span>
+          </button>
+          <button className={`tab-btn ${tab === "mg" ? "active" : ""}`} onClick={() => setTab("mg")}
+            style={agentLoopStatus?.running ? { borderColor: "rgba(0,200,81,0.5)", color: "#00c851" } : {}}>
+            🤖 MeritGuard {agentLoopStatus?.running && <span style={{ fontSize: "0.65rem", color: "#00c851" }}>● LIVE</span>}
           </button>
         </div>
         <div className="tab-body">
           {tab === "live" ? <LiveEvalTab /> :
            tab === "tee" ? <TEETab attestation={attestation} /> :
            tab === "wf" ? <WorkflowTab agentMeta={selected} /> :
-           <ZKProofTab agentMeta={selected} />}
+           tab === "ai" ? <AIAnalysisTab agentMeta={selected} /> :
+           tab === "zk" ? <ZKProofTab agentMeta={selected} /> :
+           <MeritGuardTab agentLoopStatus={agentLoopStatus} />}
         </div>
       </div>
 

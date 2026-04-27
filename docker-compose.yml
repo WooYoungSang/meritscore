@@ -10,7 +10,15 @@ services:
       MOCK_MODE: ${MOCK_MODE:-false}
       RPC_GALILEO: ${RPC_GALILEO:-https://evmrpc-testnet.0g.ai}
       RPC_BASE_SEPOLIA: ${RPC_BASE_SEPOLIA:-https://sepolia.base.org}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://10.99.0.1:29134}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma4:26b-a4b-it-q4_K_M}
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    extra_hosts:
+      - "compute-network-6.integratenetwork.work:217.18.52.23"
+      - "compute-network-7.integratenetwork.work:217.18.52.23"
     networks:
       - meritscore-net
 
