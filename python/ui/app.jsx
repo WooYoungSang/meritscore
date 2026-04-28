@@ -790,6 +790,378 @@ function ZKProofTab({ agentMeta }) {
   );
 }
 
+// ---------- Uniswap Swap Tab (Sword #6) ----------
+function UniswapSwapTab({ agentMeta }) {
+  const [fromToken, setFromToken] = useState("WETH");
+  const [toToken, setToToken] = useState("USDC");
+  const [amount, setAmount] = useState("0.001");
+  const [slippage, setSlippage] = useState(2.0);
+  const [loading, setLoading] = useState(false);
+  const [quoteResult, setQuoteResult] = useState(null);
+  const [executeResult, setExecuteResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const TOKENS = {
+    WETH: "0x4200000000000000000000000000000000000006",
+    USDC: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  };
+
+  const TOKEN_DECIMALS = {
+    WETH: 18,
+    USDC: 6,
+  };
+
+  const toWei = (humanAmount, tokenSymbol) => {
+    const decimals = TOKEN_DECIMALS[tokenSymbol] || 18;
+    const factor = Math.pow(10, decimals);
+    return String(Math.floor(parseFloat(humanAmount) * factor));
+  };
+
+  const fromWei = (weiAmount, tokenSymbol) => {
+    const decimals = TOKEN_DECIMALS[tokenSymbol] || 18;
+    const factor = Math.pow(10, decimals);
+    return (parseFloat(weiAmount) / factor).toFixed(6);
+  };
+
+  const getQuote = async () => {
+    setLoading(true);
+    setError(null);
+    setQuoteResult(null);
+    setExecuteResult(null);
+
+    try {
+      const amountInWei = toWei(amount, fromToken);
+      const res = await fetch(`${BFF}/uniswap/swap`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "quote",
+          address: agentMeta?.id || "bob",
+          from_token: TOKENS[fromToken],
+          to_token: TOKENS[toToken],
+          amount_in: amountInWei,
+          slippage_pct: slippage,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 403) {
+          setError(`Merit ${data.merit?.toFixed(4)} below threshold ${data.threshold} — swap blocked`);
+        } else if (res.status === 400) {
+          setError(data.detail || "Validation error");
+        } else {
+          setError(data.error || "Quote failed");
+        }
+        setLoading(false);
+        return;
+      }
+
+      setQuoteResult(data);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const executeSwap = async () => {
+    setLoading(true);
+    setError(null);
+    setExecuteResult(null);
+
+    try {
+      const amountInWei = toWei(amount, fromToken);
+      const res = await fetch(`${BFF}/uniswap/swap`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "execute",
+          address: agentMeta?.id || "bob",
+          from_token: TOKENS[fromToken],
+          to_token: TOKENS[toToken],
+          amount_in: amountInWei,
+          slippage_pct: slippage,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 403) {
+          setError(`Merit ${data.merit?.toFixed(4)} below threshold ${data.threshold} — swap blocked`);
+        } else if (res.status === 502) {
+          setError(`Swap reverted on-chain: ${data.reason}`);
+        } else if (res.status === 400) {
+          setError(data.detail || "Validation error");
+        } else {
+          setError(data.error || "Execution failed");
+        }
+        setLoading(false);
+        return;
+      }
+
+      setExecuteResult(data);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="tab-inner">
+      <div style={{ marginBottom: 16, color: "var(--text-dim)", fontSize: 13 }}>
+        <span className="sword">SWORD #6</span> — Merit-gated Uniswap V3 swap on Base Sepolia. Agents with merit ≥ 0.5 can execute swaps with gas-free quote pricing and configurable slippage.
+      </div>
+
+      {error && (
+        <div style={{
+          background: "rgba(255,68,68,0.08)",
+          border: "1px solid rgba(255,68,68,0.3)",
+          borderRadius: 8,
+          padding: "12px 16px",
+          marginBottom: 16,
+          color: "#ff4444",
+          fontSize: 13,
+        }}>
+          ⚠ {error}
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div>
+          <label style={{ display: "block", color: "var(--text-mute)", fontSize: 11, marginBottom: 6, fontWeight: 600 }}>
+            FROM TOKEN
+          </label>
+          <select
+            value={fromToken}
+            onChange={e => setFromToken(e.target.value)}
+            style={{
+              width: "100%",
+              background: "#0b1117",
+              border: "1px solid var(--border)",
+              color: "#fff",
+              padding: "10px 12px",
+              borderRadius: 6,
+              fontFamily: "inherit",
+              cursor: "pointer",
+            }}
+          >
+            <option value="WETH">WETH</option>
+            <option value="USDC">USDC</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: "block", color: "var(--text-mute)", fontSize: 11, marginBottom: 6, fontWeight: 600 }}>
+            TO TOKEN
+          </label>
+          <select
+            value={toToken}
+            onChange={e => setToToken(e.target.value)}
+            style={{
+              width: "100%",
+              background: "#0b1117",
+              border: "1px solid var(--border)",
+              color: "#fff",
+              padding: "10px 12px",
+              borderRadius: 6,
+              fontFamily: "inherit",
+              cursor: "pointer",
+            }}
+          >
+            <option value="WETH">WETH</option>
+            <option value="USDC">USDC</option>
+          </select>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+        <div>
+          <label style={{ display: "block", color: "var(--text-mute)", fontSize: 11, marginBottom: 6, fontWeight: 600 }}>
+            AMOUNT ({fromToken})
+          </label>
+          <input
+            type="number"
+            value={amount}
+            onChange={e => setAmount(e.target.value)}
+            step="0.0001"
+            min="0"
+            style={{
+              width: "100%",
+              background: "#0b1117",
+              border: "1px solid var(--border)",
+              color: "#fff",
+              padding: "10px 12px",
+              borderRadius: 6,
+              fontFamily: "inherit",
+              fontSize: 13,
+            }}
+            placeholder="0.001"
+          />
+        </div>
+
+        <div>
+          <label style={{ display: "block", color: "var(--text-mute)", fontSize: 11, marginBottom: 6, fontWeight: 600 }}>
+            SLIPPAGE (%)
+          </label>
+          <input
+            type="number"
+            value={slippage}
+            onChange={e => setSlippage(Math.min(5, Math.max(0, parseFloat(e.target.value))))}
+            step="0.1"
+            min="0"
+            max="5"
+            style={{
+              width: "100%",
+              background: "#0b1117",
+              border: "1px solid var(--border)",
+              color: "#fff",
+              padding: "10px 12px",
+              borderRadius: 6,
+              fontFamily: "inherit",
+              fontSize: 13,
+            }}
+            placeholder="2.0"
+          />
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+        <button
+          onClick={getQuote}
+          disabled={loading || !amount || parseFloat(amount) <= 0}
+          style={{
+            flex: 1,
+            padding: "11px 18px",
+            background: "#00d4ff",
+            color: "#001a22",
+            border: "none",
+            borderRadius: 6,
+            fontWeight: 600,
+            cursor: loading ? "wait" : "pointer",
+            opacity: (loading || !amount || parseFloat(amount) <= 0) ? 0.6 : 1,
+            fontFamily: "inherit",
+            fontSize: 13,
+          }}
+        >
+          {loading ? "⏳ Loading…" : "💰 Get Quote"}
+        </button>
+
+        <button
+          onClick={executeSwap}
+          disabled={loading || !quoteResult}
+          style={{
+            flex: 1,
+            padding: "11px 18px",
+            background: quoteResult ? "#00d4ff" : "#555d68",
+            color: "#001a22",
+            border: "none",
+            borderRadius: 6,
+            fontWeight: 600,
+            cursor: (loading || !quoteResult) ? "not-allowed" : "pointer",
+            opacity: (loading || !quoteResult) ? 0.5 : 1,
+            fontFamily: "inherit",
+            fontSize: 13,
+          }}
+        >
+          {loading ? "⏳ Executing…" : "🔄 Execute Swap"}
+        </button>
+      </div>
+
+      {quoteResult && !executeResult && (
+        <div style={{
+          background: "rgba(0,200,81,0.08)",
+          border: "1px solid rgba(0,200,81,0.3)",
+          borderRadius: 8,
+          padding: "16px",
+          marginBottom: 16,
+        }}>
+          <div style={{ color: "#00c851", fontWeight: 600, marginBottom: 12 }}>✓ Quote Retrieved</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            <div>
+              <div style={{ color: "var(--text-mute)", fontSize: 11, marginBottom: 4 }}>Amount Out</div>
+              <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>
+                {fromWei(quoteResult.amount_out, toToken)} {toToken}
+              </div>
+            </div>
+            <div>
+              <div style={{ color: "var(--text-mute)", fontSize: 11, marginBottom: 4 }}>Price Impact</div>
+              <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>
+                {quoteResult.price_impact_pct.toFixed(2)}%
+              </div>
+            </div>
+            <div>
+              <div style={{ color: "var(--text-mute)", fontSize: 11, marginBottom: 4 }}>Pool Fee</div>
+              <div style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>
+                {(quoteResult.fee_tier / 10000 * 100).toFixed(2)}%
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {executeResult && (
+        <div style={{
+          background: "rgba(0,200,81,0.08)",
+          border: "1px solid rgba(0,200,81,0.3)",
+          borderRadius: 8,
+          padding: "16px",
+        }}>
+          <div style={{ color: "#00c851", fontWeight: 600, marginBottom: 12 }}>✅ Swap Confirmed</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div>
+              <div style={{ color: "var(--text-mute)", fontSize: 11, marginBottom: 4 }}>Transaction Hash</div>
+              <a
+                href={`https://sepolia.basescan.io/tx/${executeResult.tx_hash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: "#5ce8ff",
+                  fontSize: 12,
+                  wordBreak: "break-all",
+                  textDecoration: "underline",
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}
+              >
+                {executeResult.tx_hash.slice(0, 16)}…{executeResult.tx_hash.slice(-8)}
+              </a>
+            </div>
+            <div>
+              <div style={{ color: "var(--text-mute)", fontSize: 11, marginBottom: 4 }}>Block Number</div>
+              <div style={{ color: "#fff", fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}>
+                {executeResult.block_number}
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style={{ color: "var(--text-mute)", fontSize: 11, marginBottom: 4 }}>Amount Out</div>
+            <div style={{ color: "#00c851", fontSize: 14, fontWeight: 600 }}>
+              {fromWei(executeResult.amount_out, toToken)} {toToken}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!quoteResult && !executeResult && !error && (
+        <div style={{
+          background: "var(--card-2)",
+          border: "1px dashed var(--border)",
+          borderRadius: 8,
+          padding: "24px",
+          textAlign: "center",
+          color: "var(--text-mute)",
+          fontSize: 13,
+        }}>
+          Enter swap parameters and click "Get Quote" to see the price impact and execute the swap.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------- App ----------
 function App() {
   const [selectedId, setSelectedId] = useState("bob");
@@ -959,6 +1331,9 @@ function App() {
           <button className={`tab-btn ${tab === "zk" ? "active" : ""}`} onClick={() => setTab("zk")}>
             🔏 ZK Proof <span className="sword">PILLAR #5</span>
           </button>
+          <button className={`tab-btn ${tab === "uniswap" ? "active" : ""}`} onClick={() => setTab("uniswap")}>
+            🔄 Uniswap Swap <span className="sword">SWORD #6</span>
+          </button>
           <button className={`tab-btn ${tab === "mg" ? "active" : ""}`} onClick={() => setTab("mg")}
             style={agentLoopStatus?.running ? { borderColor: "rgba(0,200,81,0.5)", color: "#00c851" } : {}}>
             🤖 MeritGuard {agentLoopStatus?.running && <span style={{ fontSize: "0.65rem", color: "#00c851" }}>● LIVE</span>}
@@ -970,6 +1345,7 @@ function App() {
            tab === "wf" ? <WorkflowTab agentMeta={selected} /> :
            tab === "ai" ? <AIAnalysisTab agentMeta={selected} /> :
            tab === "zk" ? <ZKProofTab agentMeta={selected} /> :
+           tab === "uniswap" ? <UniswapSwapTab agentMeta={selected} /> :
            <MeritGuardTab agentLoopStatus={agentLoopStatus} />}
         </div>
       </div>
