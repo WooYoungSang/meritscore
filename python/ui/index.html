@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MeritScore — On-chain credit scoring for AI agents</title>
+<link rel="icon" type="image/svg+xml" href="/ui/warvis-mark.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="/ui/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/ui/favicon-16.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -273,6 +276,126 @@
     .eval-result { grid-template-columns: 1fr; }
     .tab-btn { min-width: 160px; font-size: 11px; padding: 10px 12px; }
     .tab-btn .sword { display: none; }
+  }
+
+  /* tab-inner replaces hard-coded padding:"24px" on inline-styled tab divs */
+  .tab-inner { padding: 24px; }
+
+  @media (max-width: 768px) {
+    body { overflow-x: hidden; }
+    #root { padding: 16px 14px 32px; }
+
+    .header { padding: 14px 16px; gap: 14px; }
+    .brand { gap: 12px; }
+    .brand svg { width: 42px; height: 42px; }
+    .brand-text h1 { font-size: 20px; }
+    .brand-text p { font-size: 11px; }
+
+    .pills { flex-wrap: wrap; gap: 7px; padding-top: 0; }
+    .chain-pill { padding: 6px 10px; font-size: 11px; }
+
+    .section-head { flex-direction: column; gap: 4px; margin: 20px 4px 10px; }
+
+    .agent-grid { gap: 12px; }
+    .agent-card { padding: 16px 16px 18px; }
+    .score { font-size: 40px; }
+    .score .suffix { font-size: 12px; }
+
+    /* 탭 바: width 100% 필수 — 없으면 overflow-x:auto 가 동작 안 함 */
+    .tabs-wrap { margin-top: 20px; }
+    .tabs-bar {
+      display: flex; flex-wrap: nowrap;
+      width: 100%; box-sizing: border-box;
+      overflow-x: auto; gap: 0; padding: 0;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .tabs-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex: 0 0 auto; min-width: unset;
+      padding: 12px 14px; font-size: 11px;
+      white-space: nowrap;
+    }
+    .tab-btn.active::after { left: 10px; right: 10px; }
+
+    .tab-body { padding: 16px 14px 20px; }
+    /* tab-inner: 이미 tab-body 패딩이 있으므로 이중 패딩 제거 */
+    .tab-inner { padding: 0; }
+
+    .hash-grid { gap: 10px; }
+    .hash-box { padding: 12px 14px; }
+
+    /* TEE: tee-footer 긴 텍스트 줄바꿈 */
+    .tee-footer { flex-wrap: wrap; gap: 10px; }
+    .tee-caption { overflow-wrap: break-word; word-break: break-word; }
+
+    /* Pillar #3: steps에 min-width:0 필수 — 없으면 grid item이 min-content(~360px)로 팽창 */
+    .wf-grid { gap: 14px; }
+    .steps { height: auto; min-width: 0; overflow: hidden; }
+    /* step-row: steps가 grid 셀에 맞게 수축되면 overflow-x:auto 가 정상 동작 */
+    .step-row {
+      width: 100%; overflow-x: auto; gap: 6px;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 4px;
+    }
+    .step { flex-shrink: 0; min-width: 68px; padding: 10px 6px; }
+    .step .step-name { font-size: 9px; letter-spacing: 0.05em; }
+    .arrow { flex-shrink: 0; }
+    .log { overflow-x: auto; overflow-wrap: break-word; word-break: break-all; }
+    .wf-caption { flex-wrap: wrap; gap: 4px; overflow-wrap: break-word; }
+
+    /* Pillar #1 */
+    .live-eval-input-row { flex-direction: column; gap: 8px; }
+    .eval-btn { width: 100%; justify-content: center; }
+    .eval-result { gap: 12px; }
+    .eval-score-ring-wrap { padding: 24px 16px; }
+    .eval-score-big { font-size: 2rem; }
+    .eval-ai-title { flex-wrap: wrap; gap: 6px; }
+    .eval-status { flex-wrap: wrap; gap: 8px; }
+
+    /* Pillar #4 */
+    .ai-input-row { flex-direction: column !important; }
+    .ai-stats-row { flex-wrap: wrap !important; gap: 8px !important; }
+
+    /* Pillar #5 */
+    .zk-controls-row { flex-wrap: wrap !important; gap: 8px !important; }
+
+    /* MeritGuard */
+    .mg-status-row { flex-wrap: wrap !important; gap: 8px !important; }
+    .mg-stats-grid { grid-template-columns: 1fr !important; }
+    .mg-action-log { overflow-x: auto; }
+    .mg-action-log > div { flex-wrap: wrap; gap: 6px !important; }
+
+    .footer { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 14px; }
+  }
+
+  @media (max-width: 480px) {
+    #root { padding: 10px 10px 24px; }
+    /* tab-inner는 이미 768px에서 padding:0 처리됨 — 추가 조정 불필요 */
+
+    .header { padding: 12px 12px; }
+    .brand svg { width: 36px; height: 36px; }
+    .brand-text h1 { font-size: 17px; letter-spacing: 0.05em; }
+    .brand-text p { display: none; }
+
+    .score { font-size: 32px; }
+
+    .tab-btn { padding: 10px 12px; font-size: 10.5px; }
+
+    .tab-body { padding: 12px 10px 16px; }
+
+    .hash-value { font-size: 11px; }
+    .copy-btn { position: static; margin-top: 8px; display: block; width: 100%; text-align: center; }
+
+    .tee-footer { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+    .eval-score-big { font-size: 1.7rem; }
+    .eval-verdict-flash { font-size: 0.9rem; }
+
+    .wf-caption { font-size: 10px; }
+    .run-btn { font-size: 11px; }
+
+    .log { font-size: 10px; }
   }
 
   /* ── Sword #1 Live Eval ───────────────────────────────────────────────── */

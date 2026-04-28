@@ -513,7 +513,7 @@ function AIAnalysisTab({ agentMeta }) {
   const adversarial = result?.adversarial_agent;
 
   return (
-    <div style={{ padding: "24px", fontFamily: "'JetBrains Mono', monospace" }}>
+    <div className="tab-inner" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
       <div style={{ marginBottom: 16, color: "var(--text-dim)", fontSize: 13 }}>
         <span className="sword">PILLAR #4</span> — Gemma 4 26B via Ollama detects sandwich MEV attack patterns in agent transaction history. AI classification feeds directly into the merit oracle.
       </div>
@@ -521,7 +521,7 @@ function AIAnalysisTab({ agentMeta }) {
         powered by <span style={{ color: "#5ce8ff" }}>Gemma 4 26B</span> · Ollama · heuristic fallback
       </div>
 
-      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 20 }}>
+      <div className="ai-input-row" style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 20 }}>
         <input
           type="text"
           value={addr}
@@ -569,7 +569,7 @@ function AIAnalysisTab({ agentMeta }) {
                 {result.reason}
               </div>
             )}
-            <div style={{ display: "flex", gap: 20, fontSize: 12 }}>
+            <div className="ai-stats-row" style={{ display: "flex", gap: 20, fontSize: 12 }}>
               <span style={{ color: "var(--text-mute)" }}>merit_penalty: <span style={{ color: gaming ? "#ff8888" : "#00c851" }}>{result.merit_penalty ?? 0}</span></span>
               <span style={{ color: "var(--text-mute)" }}>mode: <span style={{ color: "var(--accent)" }}>{result.mode}</span></span>
               <span style={{ color: "var(--text-mute)" }}>address: <span className="mono" style={{ color: "#d5deea" }}>{result.address?.slice(0, 14)}…</span></span>
@@ -609,8 +609,8 @@ function MeritGuardTab({ agentLoopStatus }) {
   const flagged = status?.flagged || [];
 
   return (
-    <div style={{ padding: "24px", fontFamily: "'JetBrains Mono', monospace" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+    <div className="tab-inner" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+      <div className="mg-status-row" style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
         <div style={{
           display: "flex", alignItems: "center", gap: 8,
           background: running ? "rgba(0,200,81,0.1)" : "rgba(91,102,117,0.15)",
@@ -637,7 +637,7 @@ function MeritGuardTab({ agentLoopStatus }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
+      <div className="mg-stats-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
         {[
           { label: "Agents Monitored", value: status?.agents_checked ?? 3, color: "#5ce8ff" },
           { label: "Flagged (< 0.30)", value: flagged.length, color: flagged.length > 0 ? "#ff4444" : "#00c851" },
@@ -667,7 +667,7 @@ function MeritGuardTab({ agentLoopStatus }) {
       <div style={{ color: "var(--text-dim)", fontSize: 12, marginBottom: 10, fontWeight: 600 }}>
         Action Log — last {Math.min(actions.length, 20)} events
       </div>
-      <div style={{
+      <div className="mg-action-log" style={{
         background: "#0b1218", border: "1px solid var(--border)", borderRadius: 8,
         padding: "12px 16px", maxHeight: 320, overflowY: "auto", fontSize: 12
       }}>
@@ -732,11 +732,11 @@ function ZKProofTab({ agentMeta }) {
   };
 
   return (
-    <div style={{ padding: "24px", fontFamily: "'JetBrains Mono', monospace" }}>
+    <div className="tab-inner" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
       <div style={{ marginBottom: 16, color: "var(--text-dim)", fontSize: 13 }}>
         <span className="sword">PILLAR #5</span> — Privacy-preserving merit proof: agents prove score ≥ threshold WITHOUT revealing the actual score. Cryptographic guarantee via Groth16 on BN254.
       </div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20 }}>
+      <div className="zk-controls-row" style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20 }}>
         <span style={{ color: "var(--accent)" }}>agent:</span>
         <span style={{ color: "#fff" }}>{agent}</span>
         <span style={{ color: "var(--accent)", marginLeft: 16 }}>threshold:</span>
@@ -858,30 +858,54 @@ function App() {
               </radialGradient>
               <style>{`
                 @keyframes wh{0%,100%{opacity:.2}50%{opacity:.45}}
-                @keyframes wc{0%,100%{opacity:.4}50%{opacity:.7}}
-                .wh{animation:wh 3.2s infinite}
-                .wc{animation:wc 2.4s infinite}
+                @keyframes wc1{0%,100%{opacity:.45}50%{opacity:.78}}
+                @keyframes wc2{0%,100%{opacity:.4}50%{opacity:.85}}
+                .wh{animation:wh 3.2s ease-in-out infinite}
+                .wc1{animation:wc1 2.4s ease-in-out infinite}
+                .wc2{animation:wc2 1.8s ease-in-out infinite}
               `}</style>
             </defs>
-            <circle cx="32" cy="32" r="30" fill="url(#wcore)" opacity="0.2" className="wh"/>
+            {/* outer halo */}
+            <circle cx="32" cy="32" r="30" fill="url(#wcore)" opacity="0.3" className="wh"/>
+            {/* outer reactor ring */}
             <circle cx="32" cy="32" r="30" fill="#0b1218" stroke="url(#wg)" strokeWidth="1.8"/>
+            {/* mid ring */}
+            <circle cx="32" cy="32" r="28.5" fill="none" stroke="url(#wg)" strokeWidth="0.4" opacity="0.4"/>
+            {/* inner ring */}
             <circle cx="32" cy="32" r="27" fill="none" stroke="url(#wg)" strokeWidth="0.7" opacity="0.55"/>
-            <g stroke="url(#wg)" strokeWidth="1" strokeLinecap="round" opacity="0.7">
-              <line x1="32" y1="2"    x2="32" y2="6"/>
-              <line x1="32" y1="58"   x2="32" y2="62"/>
-              <line x1="2"  y1="32"   x2="6"  y2="32"/>
-              <line x1="58" y1="32"   x2="62" y2="32"/>
-              <line x1="10.8" y1="10.8" x2="13.6" y2="13.6"/>
-              <line x1="50.4" y1="50.4" x2="53.2" y2="53.2"/>
-              <line x1="50.4" y1="13.6" x2="53.2" y2="10.8"/>
-              <line x1="10.8" y1="53.2" x2="13.6" y2="50.4"/>
+            {/* 4 reactor slots: 12, 4, 6, 8 o'clock */}
+            <g stroke="url(#wg)" strokeWidth="1.6" strokeLinecap="round" opacity="0.95">
+              <line x1="32" y1="2.5" x2="32" y2="7"/>
+              <line x1="57.98" y1="47" x2="55.38" y2="45.5"/>
+              <line x1="6.02" y1="47" x2="8.62" y2="45.5"/>
+              <line x1="32" y1="61.5" x2="32" y2="57"/>
             </g>
-            <circle cx="32" cy="30" r="16" fill="url(#wcore)" opacity="0.4" className="wc"/>
-            <path d="M12 17 L52 17 L32 52 Z" fill="#0b1218" stroke="url(#wg)" strokeWidth="2.4" strokeLinejoin="round"/>
-            <path d="M16.5 19.5 L47.5 19.5 L32 47 Z" fill="none" stroke="url(#wg)" strokeWidth="0.7" strokeLinejoin="round" opacity="0.5"/>
-            <path d="M21 23 L26 33 L32 26 L38 33 L43 23" fill="none" stroke="#e8fbff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" filter="drop-shadow(0 0 1.6px #5ce8ff)"/>
-            <circle cx="32" cy="42" r="2" fill="#ffffff"/>
-            <circle cx="32" cy="42" r="4" fill="#5ce8ff" opacity="0.4"/>
+            {/* dual pulsing core glow */}
+            <circle cx="32" cy="32" r="19" fill="url(#wcore)" opacity="0.6" className="wc1"/>
+            <circle cx="32" cy="32" r="11" fill="url(#wcore)" opacity="0.55" className="wc2"/>
+            {/* prominent inverted triangle inscribed in inner ring (r=27) */}
+            <path d="M8.62 18.5 L55.38 18.5 L32 59 Z" fill="#0b1218" stroke="url(#wg)" strokeWidth="2.4" strokeLinejoin="round"/>
+            {/* inner triangle echo */}
+            <path d="M13 21 L51 21 L32 53.8 Z" fill="none" stroke="url(#wg)" strokeWidth="0.7" strokeLinejoin="round" opacity="0.5"/>
+            {/* vertex node caps */}
+            <g fill="#0b1218" stroke="url(#wg)" strokeWidth="0.9">
+              <circle cx="8.62" cy="18.5" r="1.6"/>
+              <circle cx="55.38" cy="18.5" r="1.6"/>
+              <circle cx="32" cy="59" r="1.6"/>
+            </g>
+            <g fill="#5ce8ff" opacity="0.85">
+              <circle cx="8.62" cy="18.5" r="0.7"/>
+              <circle cx="55.38" cy="18.5" r="0.7"/>
+              <circle cx="32" cy="59" r="0.7"/>
+            </g>
+            {/* spark dot above W */}
+            <circle cx="32" cy="24" r="2.5" fill="#5ce8ff" opacity="0.4"/>
+            <circle cx="32" cy="24" r="1.2" fill="#ffffff"/>
+            {/* W: center vertex at reactor core (32,32), outer strokes at ±60° */}
+            <path d="M21.96 30.5 L26 37.5 L32 32 L38 37.5 L42.04 30.5"
+                  fill="none" stroke="#e8fbff" strokeWidth="2.4"
+                  strokeLinecap="round" strokeLinejoin="round"
+                  style={{filter: "drop-shadow(0 0 1.4px #5ce8ff)"}}/>
           </svg>
           <div className="brand-text">
             <h1 style={{fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.1em"}}>

@@ -128,7 +128,7 @@ Obsidian (SSoT)  ←→  warvis-mcp (인덱스)  ←→  로컬 코드
 | Agent | Applies to | Capabilities |
 |-------|------------|--------------|
 | `rules-guardian` | hackathon, compliance, submission-gate | rule-enforcement, submission-veto |  <!-- Read-only EthGlobal 룰 심판. 8 Rules + AI 정책 전역 감시. 위반 1건 → VETO. commit 전 preflight / 제출 전 최종 게이트 두 시점 호출. -->
-| `hackathon-conductor` | hackathon, proof-of-merit, implementation | 4-sword, cp-tracking, kill-switch |  <!-- proof-of-merit 특화 지휘관. 4 Sword 구현, CP1~CP9 Hill 추적, Kill Switch 실행. commit 전 rules-guardian 의무 호출. -->
+| `hackathon-conductor` | hackathon, proof-of-merit, implementation | 5-sword, cp-tracking, kill-switch |  <!-- proof-of-merit 특화 지휘관. 5 Sword 구현, CP1~CP9 Hill 추적, Kill Switch 실행. commit 전 rules-guardian 의무 호출. -->
 | `bet-reviewer` | review, ship-gate | gate-review, evidence-validation |  <!-- Read-only Build Completion Report reviewer. Validates acceptance criteria, Hill Chart position, and kill conditions. Outputs SHIP / BLOCK / SCOPE_HAMMER verdict. -->
 | `contract-auditor` | contract-audit, verification | contract-analysis, code-review |  <!-- Read-only interface conformance auditor. Verifies implementation matches contract definitions. -->
 | `python-generic-engineer` | python | — |  <!-- Python domain library engineer for any project's libs/ or src/ domain code. Stdlib-first, type-annotated dataclasses. Use for pure Python domain modeling, data structures, algorithms, and library code with no project-specific external dependencies. -->

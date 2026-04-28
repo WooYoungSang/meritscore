@@ -28,6 +28,7 @@ COPY contracts/out/ ./contracts/out/
 COPY scripts/ ./scripts/
 COPY circuits/merit_threshold_js/ ./circuits/merit_threshold_js/
 COPY merit_final.zkey verification_key.json ./
+COPY assets/ ./assets/
 
 ENV HOST=0.0.0.0
 ENV PORT=61234
