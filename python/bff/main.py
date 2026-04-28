@@ -8,14 +8,17 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from dotenv import load_dotenv
+from pydantic import BaseModel
+from typing import Literal
 
-from .chain import health_check, get_merit
+from .chain import health_check, get_merit, check_merit_threshold
 from .attestation import get_attestation_data
 from .workflow import check_and_validate_merit, execute_workflow, zk_verify_merit
 from .sandwich_detector import detect_sandwich_llm
 from .agent_loop import merit_guard_loop, get_state
+from .uniswap import quote_amount_out, swap_exact_tokens
 
 # Load environment variables
 load_dotenv()
@@ -323,6 +326,256 @@ async def zk_proof(body: dict):
         raise HTTPException(status_code=504, detail="ZK proof generation timed out")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# Pydantic Models for Uniswap Swap Endpoint
+# ============================================================================
+
+
+class UniswapSwapRequest(BaseModel):
+    """Request body for POST /uniswap/swap endpoint."""
+    action: Literal["quote", "execute"]
+    address: str
+    from_token: str
+    to_token: str
+    amount_in: str
+    slippage_pct: float = 2.0
+
+
+# ============================================================================
+# Uniswap Merit-Gated Swap Endpoint (Sword #6)
+# ============================================================================
+
+
+@app.post("/uniswap/swap")
+async def uniswap_swap(req: UniswapSwapRequest):
+    """
+    Uniswap merit-gated swap endpoint (Sword #6).
+
+    Validates merit score >= 0.5, then quotes or executes a swap.
+
+    Request:
+        {
+            action: "quote" | "execute",
+            address: "alice" | "bob" | "carol" | "0x...",
+            from_token: "0x...",
+            to_token: "0x...",
+            amount_in: "1000000000000000" (wei as string),
+            slippage_pct: 2.0 (default)
+        }
+
+    Returns (quote):
+        {
+            action: "quote",
+            amount_out: "2345000000",
+            price_impact_pct: 0.45,
+            fee_tier: 3000,
+            mode: "Direct"
+        }
+
+    Returns (execute):
+        {
+            action: "execute",
+            tx_hash: "0x...",
+            amount_out: "2345000000",
+            block_number: 12345678,
+            mode: "Direct"
+        }
+
+    Returns (merit gate failure, 403):
+        {
+            error: "merit_below_threshold",
+            address: "0x...",
+            merit: 0.2641,
+            threshold: 0.5
+        }
+
+    Returns (swap reverted, 502):
+        {
+            error: "swap_reverted",
+            tx_hash: "0x..." | null,
+            reason: "UniswapV3Router: INSUFFICIENT_OUTPUT_AMOUNT"
+        }
+    """
+    # Validate action
+    if req.action not in ("quote", "execute"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid action: {req.action}, must be 'quote' or "
+                   f"'execute'"
+        )
+
+    # Validate slippage
+    if req.slippage_pct < 0 or req.slippage_pct > 5.0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Slippage must be 0-5%, got {req.slippage_pct}"
+        )
+
+    # Validate token addresses (0x-prefixed, 42 chars)
+    for token_addr in [req.from_token, req.to_token]:
+        if not token_addr.startswith("0x") or len(token_addr) != 42:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid token address: must be 0x-prefixed 42-char "
+                       f"hex, got {token_addr}"
+            )
+
+    # Resolve address alias (alice/bob/carol -> 0x...)
+    alias = _AGENT_ALIASES.get(req.address.lower())
+    resolved_address = alias["address"] if alias else req.address
+
+    # Validate resolved address
+    if not resolved_address.startswith("0x") or len(resolved_address) != 42:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid address after alias resolution: "
+                   f"{resolved_address}"
+        )
+
+    # Merit gate: check threshold 0.5 (5000 in 1e4 scale)
+    try:
+        merit_passes = await check_merit_threshold(
+            resolved_address, 5000, RPC_GALILEO
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Merit check failed: {str(e)}"
+        )
+
+    if not merit_passes:
+        # Get current merit for error response
+        try:
+            merit_result = await get_merit(resolved_address, RPC_GALILEO)
+            merit_score = merit_result.get("score", 0.0)
+        except Exception:
+            merit_score = 0.0
+
+        return JSONResponse(
+            status_code=403,
+            content={
+                "error": "merit_below_threshold",
+                "address": resolved_address,
+                "merit": merit_score,
+                "threshold": 0.5,
+            }
+        )
+
+    # Parse amount_in as int (from string to avoid JS precision loss)
+    try:
+        amount_in = int(req.amount_in)
+        if amount_in <= 0:
+            raise ValueError("amount_in must be positive")
+    except (ValueError, TypeError) as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid amount_in: {req.amount_in} ({str(e)})"
+        )
+
+    # Quote action: just get price
+    if req.action == "quote":
+        try:
+            quote_result = quote_amount_out(
+                req.from_token,
+                req.to_token,
+                amount_in,
+                rpc_url=RPC_BASE_SEPOLIA,
+            )
+            amount_out = int(quote_result["amount_out"])
+            fee_tier = quote_result["fee_tier"]
+
+            # Calculate price impact
+            from .uniswap import _estimate_price_impact
+            price_impact = _estimate_price_impact(amount_in, amount_out)
+
+            return {
+                "action": "quote",
+                "amount_out": str(amount_out),
+                "price_impact_pct": round(price_impact, 2),
+                "fee_tier": fee_tier,
+                "mode": "Direct",
+            }
+        except Exception as e:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Quote failed: {str(e)}"
+            )
+
+    # Execute action: perform actual swap
+    if req.action == "execute":
+        # Ensure we have wallet private key
+        wallet_privkey = os.getenv(
+            "WALLET_PRIVATE_KEY",
+            os.getenv("OG_PRIVATE_KEY")
+        )
+        if not wallet_privkey:
+            raise HTTPException(
+                status_code=500,
+                detail="WALLET_PRIVATE_KEY or OG_PRIVATE_KEY not set"
+            )
+
+        # Quote first to get amount_out_min
+        try:
+            quote_result = quote_amount_out(
+                req.from_token,
+                req.to_token,
+                amount_in,
+                rpc_url=RPC_BASE_SEPOLIA,
+            )
+            amount_out = int(quote_result["amount_out"])
+            amount_out_min = int(
+                amount_out * (1.0 - (req.slippage_pct / 100.0))
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Quote for slippage calculation failed: {str(e)}"
+            )
+
+        # Execute swap
+        try:
+            swap_result = swap_exact_tokens(
+                req.from_token,
+                req.to_token,
+                amount_in,
+                amount_out_min,
+                resolved_address,
+                wallet_privkey,
+                rpc_url=RPC_BASE_SEPOLIA,
+            )
+            return {
+                "action": "execute",
+                "tx_hash": swap_result["tx_hash"],
+                "amount_out": swap_result["amount_out"],
+                "block_number": swap_result["block_number"],
+                "mode": "Direct",
+            }
+        except RuntimeError as e:
+            return JSONResponse(
+                status_code=502,
+                content={
+                    "error": "swap_reverted",
+                    "tx_hash": None,
+                    "reason": str(e),
+                }
+            )
+        except ValueError as e:
+            # Handle validation errors (e.g. private key mismatch in tests)
+            return JSONResponse(
+                status_code=502,
+                content={
+                    "error": "swap_reverted",
+                    "tx_hash": None,
+                    "reason": str(e),
+                }
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=502,
+                detail=f"Swap execution failed: {str(e)}"
+            )
 
 
 @app.get("/kh/execution-log")
