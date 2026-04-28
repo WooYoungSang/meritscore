@@ -94,6 +94,7 @@ Obsidian (SSoT)  ←→  warvis-mcp (인덱스)  ←→  로컬 코드
 | GET | `/attestation` | #2 | TEE attestation card (0G Compute) |
 | POST | `/kh/workflow` | #3 | KeeperHub CHECK→VALIDATE→EXECUTE |
 | POST | `/analyze` | #4 | AI sandwich detection (Gemma4 26B / Ollama) |
+| POST | `/uniswap/swap` | #6 | Uniswap merit-gated swap (quote/execute, Base Sepolia) |
 
 ### Sword Implementation Status
 
@@ -104,6 +105,7 @@ Obsidian (SSoT)  ←→  warvis-mcp (인덱스)  ←→  로컬 코드
 | 3 | KH 3-Step Workflow + Log | ✅ DONE |
 | 4 | AI Enriches Formula | ✅ DONE |
 | 5 | ZK Merit Proof | ✅ DONE |
+| 6 | Uniswap Merit-Gated Swap | ✅ DONE |
 
 ## Spike Learnings
 

@@ -367,6 +367,62 @@ python scripts/prove_merit.py --agent alice --threshold 5000
 
 Agent's actual score remains **completely hidden**.
 
+### ✅ Sword #6: Uniswap Merit-Gated Swap
+
+**Merit-gated DEX execution: only agents with merit ≥ 0.5 can swap on Base Sepolia.**
+
+High-merit agents unlock efficient DeFi access. This endpoint demonstrates how MeritScore integrates with real DeFi protocols to gate trades.
+
+**Endpoint:**
+```
+POST /uniswap/swap
+```
+
+**Request:**
+```json
+{
+  "action": "quote" | "execute",
+  "address": "alice" | "bob" | "carol" | "0x...",
+  "from_token": "0x4200000000000000000000000000000000000006",
+  "to_token": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  "amount_in": "1000000000000000",
+  "slippage_pct": 2.0
+}
+```
+
+**Response (on success, HTTP 200):**
+```json
+{
+  "action": "quote",
+  "amount_out": "159777",
+  "fee_tier": 3000,
+  "price_impact_pct": 0.5,
+  "mode": "Direct"
+}
+```
+
+**Merit Gate Behavior:**
+
+| Agent | Merit Score | Behavior | Example Response |
+|-------|:-----------:|----------|------------------|
+| **Alice** (Sandwich Bot) | 0.2641 | ❌ **BLOCKED** | HTTP 403: `merit_below_threshold` |
+| **Bob** (Honest Arbitrageur) | 0.6703 | ✅ **APPROVED** | HTTP 200: quote with amount_out |
+| **Carol** (Unverified) | 0.0000 | ❌ **BLOCKED** | HTTP 403: `merit_below_threshold` |
+
+**Demo Transaction (Bob):**
+- Quote: 1000000000000000 wei WETH (~0.001 WETH)
+- Receives: ~159,777 wei USDC
+- Fee Tier: 3000 bps
+- Status: ✅ Approved + executed
+
+**Integration Notes:**
+- Threshold: 0.5 (half of max merit 1.0)
+- Tokens: WETH (0x4200...) ↔ USDC (0x036C...) on Base Sepolia
+- Router: Uniswap V3 SwapRouter02 (0x94cC...)
+- Mode: Live quotes via QuoterV2 (or mocked if liquidity unavailable)
+
+---
+
 ### ⏳ Pillar #1: Recovery Path *(future iteration)*
 - Agent appeal mechanism
 - Score dispute resolution
