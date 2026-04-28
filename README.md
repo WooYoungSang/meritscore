@@ -409,17 +409,25 @@ POST /uniswap/swap
 | **Bob** (Honest Arbitrageur) | 0.6703 | ✅ **APPROVED** | HTTP 200: quote with amount_out |
 | **Carol** (Unverified) | 0.0000 | ❌ **BLOCKED** | HTTP 403: `merit_below_threshold` |
 
-**Demo Transaction (Bob):**
-- Quote: 1000000000000000 wei WETH (~0.001 WETH)
-- Receives: ~159,777 wei USDC
-- Fee Tier: 3000 bps
-- Status: ✅ Approved + executed
+**Live Demo Transaction on Base Sepolia (2026-04-29):**
+
+| Step | Action | Tx Hash |
+|------|--------|---------|
+| 1 | Wrap 0.0005 ETH → WETH | [`0x7ef399...e2662f`](https://sepolia.basescan.org/tx/0x7ef399b80e4e893827e994c83c1d947ec1a34251b8aa009c5569788f04e2662f) |
+| 2 | Approve WETH → SwapRouter02 | [`0x6b46ca...500eec`](https://sepolia.basescan.org/tx/0x6b46cad0cefd29402e265dbb657677641e4a3c64c79ae4b136b594227c500eec) |
+| 3 | **Swap 0.0001 WETH → 0.015978 USDC** ⭐ | [**`0x0c7c4e...cdcf897`**](https://sepolia.basescan.org/tx/0x0c7c4ed5142950e771c4ac99178764a512bbc5a12f18513b3672b57d7cdcf897) |
+
+- Quote pre-trade (QuoterV2): 1e15 wei WETH → 159,777 USDC wei
+- Live execute (SwapRouter02 exactInputSingle): 1e14 wei WETH → **15,978 USDC wei** received
+- Fee tier: 3000 bps (0.3%)
+- Sender: `0x0bb64a3ec3B1c3Fc818A384D580Cc7E61f4c352E` (Bob signer, merit 0.6703 ≥ 0.5 ✓)
+- Slippage: actual price impact ~0.5%, generous min-out enforced
 
 **Integration Notes:**
 - Threshold: 0.5 (half of max merit 1.0)
 - Tokens: WETH (0x4200...) ↔ USDC (0x036C...) on Base Sepolia
 - Router: Uniswap V3 SwapRouter02 (0x94cC...)
-- Mode: Live quotes via QuoterV2 (or mocked if liquidity unavailable)
+- Mode: Live quotes via QuoterV2 + live execution on SwapRouter02 (verified on-chain)
 
 ---
 
