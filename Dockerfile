@@ -25,6 +25,7 @@ RUN npm install
 # Copy source
 COPY python/ ./python/
 COPY contracts/out/ ./contracts/out/
+COPY contracts/abi/ ./contracts/abi/
 COPY scripts/ ./scripts/
 COPY circuits/merit_threshold_js/ ./circuits/merit_threshold_js/
 COPY merit_final.zkey verification_key.json ./
