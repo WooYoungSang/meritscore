@@ -26,9 +26,9 @@ MeritScore solves this with **on-chain agent credit scoring**: a decentralized r
 4. **Provides verifiable evidence** (storage anchoring + oracle commit)
 5. **Supports honest-mode badges** (Direct / Workflow / Web3) for agents to self-declare
 
-### Five Pillar Architecture
+### Six-Sword Architecture
 
-**Pillar #1: Live Evaluation Button** ✅
+**Sword #1: Live Evaluation Button** ✅
 - Interactive UI for real-time merit scoring (wallet input field)
 - Displays agent merit scores with AI-powered analysis card
 - Supports named aliases (Alice/Bob/Carol) or arbitrary wallet addresses
@@ -36,29 +36,37 @@ MeritScore solves this with **on-chain agent credit scoring**: a decentralized r
 - Endpoints: `/merit/{address}` (lookup) + `/analyze` (AI classification)
 - Status: **DONE** (Docker validated, all API endpoints tested)
 
-**Pillar #2: TEE Attestation Card** ✅
+**Sword #2: TEE Attestation Card** ✅
 - Computes a 3-hash proof: `compute_hash(inference result) + storage_root(evidence) + oracle_commit(scores)`
 - Attestation sealed in Trusted Execution Environment via 0G Compute
 - Storage root anchored to EvidenceRegistry on-chain
 - **Deployment note**: Set `MOCK_MODE=false` + `OG_PRIVATE_KEY` in `.env` to enable live 0G Compute TeeML inference. When the 0G Compute ledger is unfunded or the service is unreachable, the system gracefully falls back to deterministic mock hashes (unique per call via timestamp nonce). The fallback is fully functional for demo purposes; the production path runs real TeeML.
 
-**Pillar #3: KeeperHub Workflow** ✅
+**Sword #3: KeeperHub Workflow** ✅
 - CHECK: Request agent evidence from API
 - VALIDATE: Verify attestation + score bounds
 - EXECUTE: Update on-chain merit scores if valid
 - **Fallback behavior**: If `KH_BASE_URL` / `KH_API_KEY` are unset or KeeperHub is unreachable, the EXECUTE step returns a `"PENDING"` badge — the CHECK and VALIDATE steps complete on-chain regardless. Set `KH_BASE_URL=https://app.keeperhub.com` and `KH_API_KEY=wfb_…` in `.env` to enable live KH webhook execution.
 
-**Pillar #4: AI Enrich** ✅
+**Sword #4: AI Enrich** ✅
 - Runs Gemma4 26B via Ollama for sandwich attack detection
 - Classifies agent behavior: `honest / mev_searcher / sandwich_attacker`
 - Feeds classification to merit oracle
 
-**Pillar #5: ZK Merit Proof (Privacy Tier)** ✅
+**Sword #5: ZK Merit Proof (Privacy Tier)** ✅
 - Agents prove merit ≥ threshold WITHOUT revealing actual score
 - Poseidon + Merkle tree + threshold verification in circom
 - Groth16 proofs (~1.5KB, ~200ms)
 - On-chain Solidity verifier (Base Sepolia ready)
 - Privacy guarantee: only merkleRoot + threshold visible on-chain
+
+**Sword #6: Uniswap Merit-Gated Swap** ✅
+- Live merit-gated DEX execution on Base Sepolia (Uniswap V3)
+- `POST /uniswap/swap` with `action: quote | execute` and threshold = 0.5
+- Bob (0.6703) executes swaps; Alice (0.2641) and Carol (0.0000) blocked at gate
+- Pool: WETH ↔ USDC, fee tier 3000 (with 500 bps fallback)
+- **On-chain proof:** [`0x0c7c4e…cdcf897`](https://sepolia.basescan.org/tx/0x0c7c4ed5142950e771c4ac99178764a512bbc5a12f18513b3672b57d7cdcf897) (0.0001 WETH → 0.015978 USDC)
+- Deep-dive details in the *Sword #6* section below
 
 ---
 
@@ -290,9 +298,9 @@ Returns AI classification: `honest | mev_searcher | sandwich_attacker`
 
 ---
 
-## 5 Pillar Features
+## Sword Deep-Dives
 
-### ✅ Pillar #2: TEE Attestation Card
+### ✅ Sword #2: TEE Attestation Card
 - Computes 3-hash proof via 0G Compute TeeML
 - Combines: compute result hash + storage root + oracle commit
 - Sealed in Trusted Execution Environment
@@ -302,7 +310,7 @@ Returns AI classification: `honest | mev_searcher | sandwich_attacker`
 - Oracle Commit Tx: `0xd492f5714656eb1199c307c1c67902906a0f946a9113f697e25f05a8e4917b61`
 - Commit Hash: `0x09d34df4fd5c9c75b9970e4fbe0820c2b982466532d5413e1ae3b75fe7a1b4c1`
 
-### ✅ Pillar #3: KeeperHub Workflow
+### ✅ Sword #3: KeeperHub Workflow
 - Implements 3-phase validation: CHECK → VALIDATE → EXECUTE
 - CHECK: Request evidence from agent API
 - VALIDATE: Verify attestation + score bounds
@@ -312,7 +320,7 @@ Returns AI classification: `honest | mev_searcher | sandwich_attacker`
 **Evidence:**
 - Batch Merit Tx: `0x132496633f457fecdabfe7faa8545b55975926a38e841f58d971e975d3348760`
 
-### ✅ Pillar #4: AI Enrich (Sandwich Attack Detection)
+### ✅ Sword #4: AI Enrich (Sandwich Attack Detection)
 - Runs Gemma4 26B model via Ollama
 - Analyzes transaction patterns for sandwich attack signatures
 - Classifies behavior: `honest / mev_searcher / sandwich_attacker`
@@ -322,7 +330,7 @@ Returns AI classification: `honest | mev_searcher | sandwich_attacker`
 **Model:** Gemma4 26B parameter model  
 **Detection:** Transaction timing analysis, MEV patterns, gas bidding behavior
 
-### ✅ Pillar #5: ZK Merit Proof (Privacy Tier)
+### ✅ Sword #5: ZK Merit Proof (Privacy Tier)
 
 **Agents can now prove they meet a merit threshold WITHOUT revealing their score.**
 
@@ -431,7 +439,7 @@ POST /uniswap/swap
 
 ---
 
-### ⏳ Pillar #1: Recovery Path *(future iteration)*
+### ⏳ Future Work: Recovery Path *(post-hackathon)*
 - Agent appeal mechanism
 - Score dispute resolution
 - Graduated restoration for reformed actors
