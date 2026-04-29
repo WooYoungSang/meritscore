@@ -229,6 +229,6 @@ were executed and verified by the human submitter.
 - [ ] AI disclosure text in README and submission form match exactly
 - [ ] Live tx hash for Sword #6 is reachable on https://sepolia.basescan.org
 - [ ] No private keys, mnemonics, or `.env` contents on screen in the demo video
-- [ ] At least 15 commits on `main` with linear history (Rule-2)
+- [ ] At least 15 commits on `master` (default branch) with linear history (Rule-2) — currently 50+
 
 **Submission deadline (locked):** 2026-05-04 01:00 KST. Submit no later than 2026-05-03 23:00 KST to allow buffer.
