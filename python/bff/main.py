@@ -486,9 +486,26 @@ async def uniswap_swap(req: UniswapSwapRequest):
             amount_out = int(quote_result["amount_out"])
             fee_tier = quote_result["fee_tier"]
 
-            # Calculate price impact
+            # Probe a small trade to derive a marginal rate. This makes the
+            # impact calc decimals-agnostic (works for WETH→USDC where the
+            # two sides have very different decimal scales).
             from .uniswap import _estimate_price_impact
-            price_impact = _estimate_price_impact(amount_in, amount_out)
+            marginal_in = max(1, amount_in // 1000)
+            marginal_out = 0
+            try:
+                probe = quote_amount_out(
+                    req.from_token,
+                    req.to_token,
+                    marginal_in,
+                    rpc_url=RPC_BASE_SEPOLIA,
+                )
+                marginal_out = int(probe.get("amount_out", 0))
+            except Exception:
+                marginal_in = 0  # signal: unusable
+
+            price_impact = _estimate_price_impact(
+                amount_in, amount_out, marginal_in, marginal_out
+            )
 
             return {
                 "action": "quote",

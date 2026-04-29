@@ -61,21 +61,33 @@ def _validate_token_address(token: str) -> None:
         raise ValueError(f"Invalid token address: {e}")
 
 
-def _estimate_price_impact(amount_in: int, amount_out: int) -> float:
-    """Estimate price impact as percentage.
+def _estimate_price_impact(
+    amount_in: int,
+    amount_out: int,
+    marginal_in: int | None = None,
+    marginal_out: int | None = None,
+) -> float:
+    """Estimate price impact (%) as deviation from a tiny-trade marginal rate.
 
-    For a simple quote, price_impact % = (amount_out / (amount_in * 1.0005)) * 100
-    Adjusted for fee tier (0.3% = 0.003, 0.05% = 0.0005).
-    This is a rough heuristic; actual impact depends on pool depth.
+    Decimals-agnostic: compares the actual fill rate (amount_out/amount_in)
+    against a probe-trade marginal rate (marginal_out/marginal_in). Both rates
+    are expressed in the same units, so token decimal mismatch (e.g. 18-dec
+    WETH → 6-dec USDC) cancels out.
+
+    impact_pct = (1 - actual_rate / marginal_rate) * 100, clamped to [0, 100].
+
+    Returns 0.0 when probe data is missing or unusable rather than reporting
+    a misleading value.
     """
-    if amount_in <= 0:
+    if amount_in <= 0 or amount_out <= 0:
         return 0.0
-    # Assume 0.3% fee tier for impact calc (most common)
-    fee_factor = 1.0 - 0.003
-    ideal_out = int(amount_in * fee_factor)
-    if ideal_out <= 0:
-        return 100.0
-    impact = 100.0 * (1.0 - (amount_out / ideal_out))
+    if not marginal_in or not marginal_out or marginal_in <= 0 or marginal_out <= 0:
+        return 0.0
+    marginal_rate = marginal_out / marginal_in
+    if marginal_rate <= 0:
+        return 0.0
+    actual_rate = amount_out / amount_in
+    impact = 100.0 * (1.0 - (actual_rate / marginal_rate))
     return max(0.0, min(100.0, impact))
 
 

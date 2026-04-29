@@ -101,11 +101,21 @@ def test_merit_gate_carol_blocked(client):
 def test_quote_returns_amount_out(client):
     """Quote action returns amount_out, price_impact_pct, fee_tier."""
     with patch("bff.main.quote_amount_out") as mock_quote:
-        mock_quote.return_value = {
-            "amount_out": "2345000000",
-            "fee_tier": 3000,
-            "sqrt_price_after": "123456789012345678901234567890",
-        }
+        # Two quotes are issued: the main fill quote and a probe quote
+        # at amount_in // 1000 for marginal-rate estimation. Return a
+        # proportional probe so price_impact ≈ 0.
+        mock_quote.side_effect = [
+            {
+                "amount_out": "2345000000",
+                "fee_tier": 3000,
+                "sqrt_price_after": "123456789012345678901234567890",
+            },
+            {
+                "amount_out": "2345000",  # probe: 1/1000 of main, same rate
+                "fee_tier": 3000,
+                "sqrt_price_after": "123456789012345678901234567890",
+            },
+        ]
 
         response = client.post("/uniswap/swap", json={
             "action": "quote",
@@ -131,20 +141,24 @@ def test_quote_returns_amount_out(client):
 
 
 def test_quote_price_impact_calc(client):
-    """Price impact calculation is reasonable (0–5% for small swaps)."""
+    """Price impact = deviation between actual fill rate and probe marginal rate."""
     with patch("bff.main.quote_amount_out") as mock_quote:
-        # The price impact calc assumes amount_in and amount_out in the same
-        # "scale". For testing, use amount_in=10^18 (1 wei scale, for WETH)
-        # and amount_out at similar scale. The calc formula:
-        # impact = 100.0 * (1.0 - (amount_out / (amount_in * 0.997)))
-        # So if amount_out = amount_in * 0.99, impact ≈ 2%
-        amount_in = 10000000000000000  # 0.01 ETH
-        # Return amount_out = amount_in * 0.99 (2% impact)
-        mock_quote.return_value = {
-            "amount_out": str(int(amount_in * 0.99)),
-            "fee_tier": 3000,
-            "sqrt_price_after": "123456789012345678901234567890",
-        }
+        amount_in = 10**16  # 0.01 WETH
+        # Probe runs at amount_in // 1000 = 10^13 with a clean 1:1 rate.
+        # Main fill returns 0.992 of the marginal rate → impact ≈ 0.8%.
+        marginal_in = amount_in // 1000
+        mock_quote.side_effect = [
+            {
+                "amount_out": str(int(amount_in * 0.992)),
+                "fee_tier": 3000,
+                "sqrt_price_after": "123456789012345678901234567890",
+            },
+            {
+                "amount_out": str(marginal_in),  # probe rate = 1.0
+                "fee_tier": 3000,
+                "sqrt_price_after": "123456789012345678901234567890",
+            },
+        ]
 
         response = client.post("/uniswap/swap", json={
             "action": "quote",
@@ -157,7 +171,6 @@ def test_quote_price_impact_calc(client):
         assert response.status_code == 200
         data = response.json()
         price_impact = float(data["price_impact_pct"])
-        # Should be roughly 0.7% (99% output with 0.3% fee factor)
         assert 0.5 < price_impact < 1.0, \
             f"Price impact {price_impact}% not in expected range"
 
