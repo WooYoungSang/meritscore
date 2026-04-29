@@ -449,7 +449,7 @@ function LiveEvalTab() {
           <div className="eval-ai-result">
             <div className="eval-ai-title">
               <span style={{ color: "var(--accent)", fontWeight: 600 }}>AI Analysis</span>
-              <span className="sword">PILLAR #4</span>
+              <span className="sword">SWORD #4</span>
               <span style={{ color: "var(--text-mute)", fontSize: "0.68rem", marginLeft: 8 }}>Gemma 4 26B · Ollama</span>
             </div>
             {result.analyze ? (
@@ -482,7 +482,7 @@ function LiveEvalTab() {
   );
 }
 
-// ---------- AI Sandwich Detection Tab (Pillar #4) ----------
+// ---------- AI Sandwich Detection Tab (Sword #4) ----------
 function AIAnalysisTab({ agentMeta }) {
   const [addr, setAddr] = useState(agentMeta?.address || agentMeta?.id || "");
   const [running, setRunning] = useState(false);
@@ -515,7 +515,7 @@ function AIAnalysisTab({ agentMeta }) {
   return (
     <div className="tab-inner" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
       <div style={{ marginBottom: 16, color: "var(--text-dim)", fontSize: 13 }}>
-        <span className="sword">PILLAR #4</span> — Gemma 4 26B via Ollama detects sandwich MEV attack patterns in agent transaction history. AI classification feeds directly into the merit oracle.
+        <span className="sword">SWORD #4</span> — Gemma 4 26B via Ollama detects sandwich MEV attack patterns in agent transaction history. AI classification feeds directly into the merit oracle.
       </div>
       <div style={{ marginBottom: 8, color: "var(--text-mute)", fontSize: 11 }}>
         powered by <span style={{ color: "#5ce8ff" }}>Gemma 4 26B</span> · Ollama · heuristic fallback
@@ -734,7 +734,7 @@ function ZKProofTab({ agentMeta }) {
   return (
     <div className="tab-inner" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
       <div style={{ marginBottom: 16, color: "var(--text-dim)", fontSize: 13 }}>
-        <span className="sword">PILLAR #5</span> — Privacy-preserving merit proof: agents prove score ≥ threshold WITHOUT revealing the actual score. Cryptographic guarantee via Groth16 on BN254.
+        <span className="sword">SWORD #5</span> — Privacy-preserving merit proof: agents prove score ≥ threshold WITHOUT revealing the actual score. Cryptographic guarantee via Groth16 on BN254.
       </div>
       <div className="zk-controls-row" style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20 }}>
         <span style={{ color: "var(--accent)" }}>agent:</span>
@@ -1317,23 +1317,25 @@ function App() {
       <div className="tabs-wrap">
         <div className="tabs-bar">
           <button className={`tab-btn ${tab === "live" ? "active" : ""}`} onClick={() => setTab("live")}>
-            ⚡ Live Eval <span className="sword">PILLAR #1</span>
+            ⚡ Live Eval <span className="sword">SWORD #1</span>
           </button>
           <button className={`tab-btn ${tab === "tee" ? "active" : ""}`} onClick={() => setTab("tee")}>
-            🔐 TEE Attestation <span className="sword">PILLAR #2</span>
+            🔐 TEE Attestation <span className="sword">SWORD #2</span>
           </button>
           <button className={`tab-btn ${tab === "wf" ? "active" : ""}`} onClick={() => setTab("wf")}>
-            ⚡ KH Workflow <span className="sword">PILLAR #3</span>
+            ⚡ KH Workflow <span className="sword">SWORD #3</span>
           </button>
           <button className={`tab-btn ${tab === "ai" ? "active" : ""}`} onClick={() => setTab("ai")}>
-            🤖 AI Analysis <span className="sword">PILLAR #4</span>
+            🤖 AI Analysis <span className="sword">SWORD #4</span>
           </button>
           <button className={`tab-btn ${tab === "zk" ? "active" : ""}`} onClick={() => setTab("zk")}>
-            🔏 ZK Proof <span className="sword">PILLAR #5</span>
+            🔏 ZK Proof <span className="sword">SWORD #5</span>
           </button>
           <button className={`tab-btn ${tab === "uniswap" ? "active" : ""}`} onClick={() => setTab("uniswap")}>
             🔄 Uniswap Swap <span className="sword">SWORD #6</span>
           </button>
+          {/* Force MeritGuard onto its own row so Sword #1–#6 stay together */}
+          <div className="tab-row-break" aria-hidden="true"></div>
           <button className={`tab-btn ${tab === "mg" ? "active" : ""}`} onClick={() => setTab("mg")}
             style={agentLoopStatus?.running ? { borderColor: "rgba(0,200,81,0.5)", color: "#00c851" } : {}}>
             🤖 MeritGuard {agentLoopStatus?.running && <span style={{ fontSize: "0.65rem", color: "#00c851" }}>● LIVE</span>}

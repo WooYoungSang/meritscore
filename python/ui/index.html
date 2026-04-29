@@ -184,6 +184,8 @@
 
   .tabs-wrap { margin-top: 28px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
   .tabs-bar { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--border); background: #10161e; padding: 4px; }
+  /* Forced flex line break: Sword #1–#6 stay on row 1, MeritGuard wraps to row 2 */
+  .tab-row-break { flex-basis: 100%; width: 100%; height: 0; padding: 0; margin: 0; border: 0; }
   .tab-btn {
     flex: 1; min-width: 240px; padding: 14px 18px; background: transparent; border: 0;
     color: var(--text-dim); font-family: 'Space Grotesk', sans-serif;
@@ -329,7 +331,7 @@
     .tee-footer { flex-wrap: wrap; gap: 10px; }
     .tee-caption { overflow-wrap: break-word; word-break: break-word; }
 
-    /* Pillar #3: steps에 min-width:0 필수 — 없으면 grid item이 min-content(~360px)로 팽창 */
+    /* Sword #3: steps에 min-width:0 필수 — 없으면 grid item이 min-content(~360px)로 팽창 */
     .wf-grid { gap: 14px; }
     .steps { height: auto; min-width: 0; overflow: hidden; }
     /* step-row: steps가 grid 셀에 맞게 수축되면 overflow-x:auto 가 정상 동작 */
@@ -344,7 +346,7 @@
     .log { overflow-x: auto; overflow-wrap: break-word; word-break: break-all; }
     .wf-caption { flex-wrap: wrap; gap: 4px; overflow-wrap: break-word; }
 
-    /* Pillar #1 */
+    /* Sword #1 */
     .live-eval-input-row { flex-direction: column; gap: 8px; }
     .eval-btn { width: 100%; justify-content: center; }
     .eval-result { gap: 12px; }
@@ -353,11 +355,11 @@
     .eval-ai-title { flex-wrap: wrap; gap: 6px; }
     .eval-status { flex-wrap: wrap; gap: 8px; }
 
-    /* Pillar #4 */
+    /* Sword #4 */
     .ai-input-row { flex-direction: column !important; }
     .ai-stats-row { flex-wrap: wrap !important; gap: 8px !important; }
 
-    /* Pillar #5 */
+    /* Sword #5 */
     .zk-controls-row { flex-wrap: wrap !important; gap: 8px !important; }
 
     /* MeritGuard */
