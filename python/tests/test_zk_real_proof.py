@@ -49,20 +49,17 @@ def test_zk_real_proof_bob_passes():
 
     pi_a_0 = proof["pi_a"][0]
 
-    # Valid BN128 values are hex strings starting with 0x and >4 chars
-    # Dummy values like "0x123" are much shorter
+    # Valid BN128 values are large field elements; snarkjs returns them as
+    # decimal strings by default, but hex (0x-prefixed) is also acceptable.
     assert isinstance(pi_a_0, str), "pi_a[0] should be string"
-    assert pi_a_0.startswith("0x"), f"pi_a[0] should be hex: {pi_a_0[:20]}"
 
-    hex_part = pi_a_0[2:]
-    # Valid proof values should be longer than trivial dummy (0x123 = 5 chars)
-    assert len(hex_part) > 8, f"pi_a[0] too short (likely dummy): {pi_a_0}"
+    if pi_a_0.startswith("0x"):
+        int_val = int(pi_a_0, 16)
+    else:
+        int_val = int(pi_a_0)
 
-    # Verify it's actual hex
-    try:
-        int(hex_part, 16)
-    except ValueError:
-        raise AssertionError(f"pi_a[0] not valid hex: {pi_a_0}")
+    # Dummy proofs use tiny values like 0x123 (=291); real BN128 values are >1e8
+    assert int_val > 10**8, f"pi_a[0] too small (likely dummy): {pi_a_0}"
 
     print("✓ Valid proof generated for bob")
     print(f"  pi_a[0]: {pi_a_0[:50]}...")

@@ -92,8 +92,8 @@ async def test_merit_guard_loop_respects_scan_interval():
 
 @pytest.mark.asyncio
 async def test_merit_guard_loop_demo_agents_defined():
-    """Test that DEMO_AGENTS tuple is properly defined."""
-    assert DEMO_AGENTS == ("alice", "bob", "carol")
+    """Test that DEMO_AGENTS contains the three demo agents."""
+    assert set(DEMO_AGENTS) == {"alice", "bob", "carol"}
     assert len(DEMO_AGENTS) == 3
 
 
