@@ -17,10 +17,10 @@ MeritScore
 ## 2. Tagline (≤ 80 chars)
 
 ```
-Experian for AI Agents — on-chain merit scoring with ZK proofs and merit-gated DeFi
+Experian for AI Agents — merit-gated trust for autonomous agents
 ```
 
-(Length check: 81 chars — trim to under 80 if EthGlobal enforces; alternative shorter form: `Experian for AI Agents — merit-gated trust for autonomous agents`)
+(64 chars, well under 80. Earlier draft "...with ZK proofs and merit-gated DeFi" was 81 chars and is dropped.)
 
 ## 3. Short description (≤ 200 chars)
 
