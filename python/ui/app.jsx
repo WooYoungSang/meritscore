@@ -198,6 +198,69 @@ function TEETab({ attestation }) {
           {modeLabel.toUpperCase()}
         </span>
       </div>
+
+      {/* Transparency badges row */}
+      <div style={{display: "flex", gap: "8px", marginTop: "16px", flexWrap: "wrap", alignItems: "center"}}>
+        {/* Provider badge */}
+        <span style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "10px",
+          padding: "5px 10px",
+          borderRadius: "4px",
+          backgroundColor: "rgba(92, 232, 255, 0.08)",
+          color: "#5ce8ff",
+          border: "1px solid rgba(92, 232, 255, 0.3)",
+          whiteSpace: "nowrap"
+        }}>
+          Provider: {(attestation?.provider || "unknown").length > 14
+            ? (attestation?.provider || "unknown").slice(0, 12) + "…"
+            : attestation?.provider || "unknown"}
+        </span>
+
+        {/* Compute badge */}
+        <span style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "10px",
+          padding: "5px 10px",
+          borderRadius: "4px",
+          backgroundColor: attestation?.compute_ok ? "rgba(0, 200, 81, 0.08)" : "rgba(255, 68, 68, 0.08)",
+          color: attestation?.compute_ok ? "#00c851" : "#ff4444",
+          border: attestation?.compute_ok ? "1px solid rgba(0, 200, 81, 0.3)" : "1px solid rgba(255, 68, 68, 0.3)",
+          whiteSpace: "nowrap"
+        }}>
+          Compute: {attestation?.compute_ok ? "✓" : "✗"}
+        </span>
+
+        {/* Storage badge */}
+        <span style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "10px",
+          padding: "5px 10px",
+          borderRadius: "4px",
+          backgroundColor: attestation?.storage_ok ? "rgba(0, 200, 81, 0.08)" : "rgba(255, 68, 68, 0.08)",
+          color: attestation?.storage_ok ? "#00c851" : "#ff4444",
+          border: attestation?.storage_ok ? "1px solid rgba(0, 200, 81, 0.3)" : "1px solid rgba(255, 68, 68, 0.3)",
+          whiteSpace: "nowrap"
+        }}>
+          Storage: {attestation?.storage_ok ? "✓" : "✗"}
+        </span>
+
+        {/* Fallback badge - only render if fallback_reason is non-null/non-empty */}
+        {attestation?.fallback_reason && (
+          <span style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "10px",
+            padding: "5px 10px",
+            borderRadius: "4px",
+            backgroundColor: "rgba(255, 158, 61, 0.08)",
+            color: "#ff9e3d",
+            border: "1px solid rgba(255, 158, 61, 0.3)",
+            whiteSpace: "nowrap"
+          }}>
+            Fallback: {attestation.fallback_reason}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

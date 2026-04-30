@@ -130,6 +130,38 @@ def test_attestation_oracle_commit_hash(client):
     assert data["oracle_commit"] == "0x09d34df4fd5c9c75b9970e4fbe0820c2b982466532d5413e1ae3b75fe7a1b4c1"
 
 
+def test_attestation_transparency_fields(client):
+    """Test attestation response includes all transparency fields for judge verification."""
+    response = client.get("/attestation")
+    assert response.status_code == 200
+    data = response.json()
+
+    # All original fields must exist
+    assert "compute_hash" in data
+    assert "storage_root" in data
+    assert "oracle_commit" in data
+    assert "mode" in data
+
+    # New transparency fields must exist
+    assert "compute_ok" in data, "Missing compute_ok transparency field"
+    assert "storage_ok" in data, "Missing storage_ok transparency field"
+    assert "provider" in data, "Missing provider transparency field"
+    assert "fallback_reason" in data, "Missing fallback_reason transparency field"
+
+    # Verify types
+    assert isinstance(data["compute_ok"], bool), "compute_ok should be bool"
+    assert isinstance(data["storage_ok"], bool), "storage_ok should be bool"
+    assert isinstance(data["provider"], str), "provider should be str"
+    assert data["fallback_reason"] is None or isinstance(data["fallback_reason"], str), \
+        "fallback_reason should be str or None"
+
+    # In MOCK_MODE (default test environment), verify expected values
+    if data["provider"] == "mock":
+        assert data["compute_ok"] is False, "MOCK_MODE should have compute_ok=False"
+        assert data["storage_ok"] is False, "MOCK_MODE should have storage_ok=False"
+        assert data["fallback_reason"] == "MOCK_MODE", "MOCK_MODE fallback_reason should be MOCK_MODE"
+
+
 # ============================================================================
 # Workflow Endpoint Tests
 # ============================================================================
@@ -152,7 +184,13 @@ def test_workflow_check_alice_sufficient_threshold(client):
     assert "mode" in data
     assert data["mode"] == "Workflow"
     assert data["check"] is True  # alice meets threshold
-    assert data["execute"] in ["PENDING", "OK"]
+    # execute returns either string "OK" (live KH) or dict {status: intentionally_simulated, reason: ...}
+    execute = data["execute"]
+    if isinstance(execute, dict):
+        assert execute.get("status") == "intentionally_simulated"
+        assert "reason" in execute
+    else:
+        assert execute in ["PENDING", "OK"]
 
 
 def test_workflow_check_bob_sufficient_threshold(client):

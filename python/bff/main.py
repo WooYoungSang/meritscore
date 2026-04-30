@@ -173,10 +173,19 @@ async def merit(address: str):
 @app.get("/attestation")
 async def attestation():
     """
-    Get 0G Compute Attestation Card (Sword #2).
+    Get 0G Compute Attestation Card (Sword #2) with transparency fields.
 
     Returns:
-        {compute_hash, storage_root, oracle_commit, mode}
+        {
+            compute_hash: str (0x-prefixed sha256),
+            storage_root: str (0x-prefixed, from EvidenceRegistry.latest()),
+            oracle_commit: str (0x-prefixed commit hash),
+            mode: str ("Workflow" if real, "Direct" if fallback),
+            compute_ok: bool (0G Compute SDK reachable + ledger funded),
+            storage_ok: bool (EvidenceRegistry.latest() reads cleanly),
+            provider: str (which 0G provider/model used; "mock" if MOCK_MODE),
+            fallback_reason: str|null ("MOCK_MODE", "0g_compute_failed", "storage_unavailable", null if real)
+        }
     """
     try:
         result = await get_attestation_data()
@@ -213,8 +222,8 @@ async def kh_workflow(request_body: dict):
         # ZK_VERIFY
         zk_result = await zk_verify_merit(address, threshold)
 
-        # EXECUTE (pending)
-        execute_status = await execute_workflow(address, threshold)
+        # EXECUTE (pending or intentionally_simulated)
+        execute_result = await execute_workflow(address, threshold)
 
         # Log execution
         log_entry = {
@@ -224,7 +233,7 @@ async def kh_workflow(request_body: dict):
             "check": check_ok,
             "validate": validate_ok,
             "zk_verify": zk_result.get("verified", False),
-            "execute": execute_status,
+            "execute": execute_result.get("status"),
         }
         global _kh_execution_log
         _kh_execution_log = [log_entry] + _kh_execution_log[:19]
@@ -233,7 +242,7 @@ async def kh_workflow(request_body: dict):
             "check": check_ok,
             "validate": validate_ok,
             "zk_verify": zk_result,
-            "execute": execute_status,
+            "execute": execute_result,
             "mode": "Workflow",
         }
     except ValueError as e:

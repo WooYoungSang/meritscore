@@ -124,7 +124,7 @@ async def _get_compute_hash_from_0g() -> tuple[str, bool]:
 # ── Public API ─────────────────────────────────────────────────────────────
 
 async def get_attestation_data() -> dict:
-    """Get 0G Compute Attestation Card.
+    """Get 0G Compute Attestation Card with transparency fields.
 
     AC1: Returns {compute_hash, storage_root, oracle_commit, mode}
     AC2: MOCK_MODE=false → real 0G Compute call with graceful fallback
@@ -132,8 +132,14 @@ async def get_attestation_data() -> dict:
     AC4: storage_root from EvidenceRegistry.latest() on 0G Galileo
     AC5: mode="Workflow" if 0G succeeded, "Direct" if fallback
 
+    Transparency fields:
+    - compute_ok: bool (0G Compute SDK reachable + ledger funded)
+    - storage_ok: bool (EvidenceRegistry.latest() reads cleanly)
+    - provider: str (which 0G provider/model address used; "mock" if MOCK_MODE)
+    - fallback_reason: str|null (why fallback triggered: "MOCK_MODE", "ledger_empty", "rpc_timeout", null if real)
+
     Returns:
-        dict with compute_hash, storage_root, oracle_commit, mode
+        dict with compute_hash, storage_root, oracle_commit, mode, plus transparency fields
     """
     from .chain import get_storage_root
 
@@ -144,27 +150,41 @@ async def get_attestation_data() -> dict:
             "storage_root": _mock_storage_root(),
             "oracle_commit": ORACLE_COMMIT_HASH,
             "mode": "Workflow",
+            "compute_ok": False,
+            "storage_ok": False,
+            "provider": "mock",
+            "fallback_reason": "MOCK_MODE",
         }
 
     # MOCK_MODE=false: attempt real 0G calls
     logger.info("MOCK_MODE=false — invoking 0G Compute + EvidenceRegistry")
 
     compute_hash, compute_ok = await _get_compute_hash_from_0g()
+    provider = "0g-compute" if compute_ok else "mock"
+    fallback_reason = None if compute_ok else "0g_compute_failed"
 
+    storage_ok = True
     try:
         storage_root = await get_storage_root(RPC_GALILEO)
         logger.info("EvidenceRegistry.latest() OK: %s…", storage_root[:18])
     except Exception as exc:
+        storage_ok = False
         logger.error("EvidenceRegistry fetch failed: %s — using mock storage_root", exc)
         storage_root = _mock_storage_root()
-        compute_ok = False
+        if not fallback_reason:
+            fallback_reason = "storage_unavailable"
 
-    mode = "Workflow" if compute_ok else "Direct"
-    logger.info("Attestation complete: mode=%s compute_ok=%s", mode, compute_ok)
+    # compute_ok must be True AND storage_ok must be True for "Workflow"
+    mode = "Workflow" if (compute_ok and storage_ok) else "Direct"
+    logger.info("Attestation complete: mode=%s compute_ok=%s storage_ok=%s", mode, compute_ok, storage_ok)
 
     return {
         "compute_hash": compute_hash,
         "storage_root": storage_root,
         "oracle_commit": ORACLE_COMMIT_HASH,
         "mode": mode,
+        "compute_ok": compute_ok,
+        "storage_ok": storage_ok,
+        "provider": provider,
+        "fallback_reason": fallback_reason,
     }
