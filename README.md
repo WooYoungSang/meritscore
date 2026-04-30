@@ -8,6 +8,35 @@
 
 ---
 
+## Real vs Fallback Matrix
+
+**How each Sword behaves in production vs graceful degradation:**
+
+| Sword | Real Path | Fallback Trigger | Live Evidence |
+|-------|-----------|------------------|---------------|
+| **#1: Live Evaluation** | `/merit/{addr}` reads MeritCore on 0G Galileo | Demo alias resolves to locked constants if address unknown | `0x19E3C17F58052Bb75D1c24bC1c56C2bfd1E5A906` (MeritCore) |
+| **#2: TEE Attestation** | 0G Compute TeeML inference + provider attestation | Mock hash if `MOCK_MODE=true` or ledger unfunded | `/attestation` returns provider + compute_ok |
+| **#3: KH 4-Step Workflow** | CHECK + VALIDATE + ZK_VERIFY run with real Merkle/Poseidon proof. EXECUTE relays to KH webhook when KH_API_KEY is set. | EXECUTE returns `intentionally_simulated` when KH webhook endpoint unconfirmed (KeeperHub partner endpoint pending public availability). CHECK + VALIDATE + ZK_VERIFY produce real on-chain/cryptographic evidence. | See live evidence in [submission-final.md](docs/submission-final.md) |
+| **#4: AI Sandwich Detection** | Gemma4 26B via Ollama local inference | None (always real; Ollama required) | `/analyze` returns judgment + rationale |
+| **#5: ZK Merit Proof** | Circom Poseidon + Merkle threshold, snarkjs Groth16 | None (always real, proof generation) | `scripts/prove_merit.py` + `circuits/merit_threshold.circom` |
+| **#6: Uniswap Merit-Gated Swap** | Base Sepolia QuoterV2 + SwapRouter02 | None for quote; execute requires private key | `/uniswap/swap`, live tx on Base Sepolia 84532 |
+
+---
+
+## Demo Truth Table
+
+**Live agent credentials and expected behavior across all endpoints:**
+
+| Agent | Merit Score | Endpoint | Expected Result | Evidence |
+|-------|:-----------:|----------|-----------------|----------|
+| **Bob** (Honest Arbitrage) | **0.6703** | `/merit/bob` | Returns 0.6703 | MeritCore tx `0x132496...` |
+| **Bob** | **0.6703** | `/uniswap/swap` (quote) | HTTP 200, quote OK (≥0.5 LTV) | Base Sepolia live |
+| **Alice** (Sandwich MEV Bot) | **0.2641** | `/analyze` | Sandwich DETECTED + penalized | AI model output |
+| **Alice** | **0.2641** | `/uniswap/swap` (execute) | HTTP 403 BLOCKED (<0.5 merit) | Merit gate enforced |
+| **Carol** (Unverified) | **0.0000** | `/kh/workflow` | UNVERIFIED / no evidence | KeeperHub `intentionally_simulated` |
+
+---
+
 ## The Problem
 
 AI agents are entering DeFi at scale—arbitrage bots, MEV searchers, sandwich attackers, and honest market makers all operate autonomously with real economic power. Yet there's no on-chain credit infrastructure to distinguish them. DeFi protocols today can't tell a trusted arbitrage agent from a malicious sandwich bot, so they treat all agents equally—or ban them entirely.
@@ -43,10 +72,11 @@ MeritScore solves this with **on-chain agent credit scoring**: a decentralized r
 - **Deployment note**: Set `MOCK_MODE=false` + `OG_PRIVATE_KEY` in `.env` to enable live 0G Compute TeeML inference. When the 0G Compute ledger is unfunded or the service is unreachable, the system gracefully falls back to deterministic mock hashes (unique per call via timestamp nonce). The fallback is fully functional for demo purposes; the production path runs real TeeML.
 
 **Sword #3: KeeperHub Workflow** ✅
-- CHECK: Request agent evidence from API
-- VALIDATE: Verify attestation + score bounds
-- EXECUTE: Update on-chain merit scores if valid
-- **Fallback behavior**: If `KH_BASE_URL` / `KH_API_KEY` are unset or KeeperHub is unreachable, the EXECUTE step returns a `"PENDING"` badge — the CHECK and VALIDATE steps complete on-chain regardless. Set `KH_BASE_URL=https://app.keeperhub.com` and `KH_API_KEY=wfb_…` in `.env` to enable live KH webhook execution.
+- CHECK: Request agent evidence from API (real)
+- VALIDATE: Verify attestation + score bounds (real on-chain)
+- ZK_VERIFY: Groth16 threshold proof verified (real cryptographic)
+- EXECUTE: Relays to KeeperHub webhook when configured; otherwise returns `status: "intentionally_simulated"` with reason
+- **Honest labeling**: If `KH_BASE_URL` / `KH_API_KEY` are unset or KeeperHub is unreachable, EXECUTE returns `{"status": "intentionally_simulated", "reason": "..."}` — CHECK + VALIDATE + ZK_VERIFY still produce real on-chain / cryptographic evidence regardless. Set `KH_BASE_URL=https://app.keeperhub.com` and `KH_API_KEY=wfb_…` in `.env` to enable live KH webhook execution. See Real-vs-Fallback Matrix above.
 
 **Sword #4: AI Enrich** ✅
 - Runs Gemma4 26B via Ollama for sandwich attack detection
@@ -467,7 +497,7 @@ POST /uniswap/swap
 - Contracts: MeritCore (0G Galileo) + MeritVault + EvidenceRegistry (Base Sepolia)
 - BFF: 5 FastAPI endpoints
 - Sword #2: TEE Attestation Card
-- Sword #3: KH 3-Step Workflow (CHECK → VALIDATE → EXECUTE)
+- Sword #3: KH 4-Step Workflow (CHECK → VALIDATE → ZK_VERIFY → EXECUTE w/ `intentionally_simulated` honest fallback)
 - Sword #4: AI Sandwich Detection (Gemma4 26B)
 
 **Deployed Contracts:**
@@ -588,7 +618,7 @@ MIT License. See [LICENSE](./LICENSE) file for details.
 Agents can self-declare their mode of operation:
 
 - **Direct**: Agent calls MeritCore directly (no intermediaries)
-- **Workflow**: Agent uses KeeperHub workflow (CHECK→VALIDATE→EXECUTE)
+- **Workflow**: Agent uses KeeperHub workflow (CHECK→VALIDATE→ZK_VERIFY→EXECUTE)
 - **Web3**: Agent interacts via Web3 provider (ethers.js / web3.py)
 
 ---

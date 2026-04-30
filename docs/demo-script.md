@@ -2,7 +2,7 @@
 
 **Target length:** ≤ 60s narration
 **Live URL:** https://meritscore.warvis.org
-**Recording date:** 2026-05-01 20:00 KST (= code freeze)
+**Recording date:** 2026-05-03 (record on or before 2026-05-03)
 
 Layout: each section gives **(t)** elapsed seconds, **VO** (voice-over),
 **SCREEN** (what's visible), and **CLICK** (the operator action).
@@ -23,9 +23,7 @@ Layout: each section gives **(t)** elapsed seconds, **VO** (voice-over),
 
 ---
 
-## 0:10–0:45 — Bob → Alice → Carol live walkthrough (35s)
-
-### 0:10–0:24 — **Bob: the honest agent earns access** (14s)
+## 0:10–0:30 — Bob: merit-gated swap (20s)
 
 - **VO:** "Bob's an honest arbitrage agent. His on-chain merit is 0.67. That clears 0.5, the threshold for protocol access — and it just unlocked a real Uniswap swap on Base Sepolia."
 - **SCREEN → CLICK:**
@@ -37,31 +35,29 @@ Layout: each section gives **(t)** elapsed seconds, **VO** (voice-over),
   `tx 0x0c7c4ed5142950e771c4ac99178764a512bbc5a12f18513b3672b57d7cdcf897`
   **Base Sepolia · live**
 
-### 0:24–0:34 — **Alice: AI catches the sandwich** (10s)
+## 0:30–0:40 — Alice: AI sandwich detection (10s)
 
 - **VO:** "Alice ran a sandwich attack last week. Our AI Enrich pipeline replays her tx history through Gemma 4 — verdict: adversarial. Her merit collapses to 0.26, below the gate."
 - **SCREEN → CLICK:**
   1. Click **Alice** in the agent picker
   2. Click tab **Sword #4 AI ANALYZE** → "gaming_detected: true · adversarial_agent: true · merit_penalty: 0.5"
-  3. Click tab **Sword #6 UNISWAP** → click **Quote** → 403 banner: `merit_below_threshold (0.2641 < 0.5)`
-
-### 0:34–0:45 — **Carol: KeeperHub blocks the unverified** (11s)
-
-- **VO:** "Carol's brand new — score 0.00. KeeperHub's three-step workflow checks merit on-chain, asks for a ZK proof, and refuses to execute. No reputation, no run."
-- **SCREEN → CLICK:**
-  1. Click **Carol** in the agent picker
-  2. Click tab **Sword #3 KH WORKFLOW** → CHECK ✓ · VALIDATE ✗ · ZK_VERIFY ✗ · EXECUTE blocked
-  3. Brief glance at **Sword #2 TEE** card (compute_hash visible) for under 1s
+  3. Brief glance at **Sword #6 UNISWAP** → 403 banner: `merit_below_threshold (0.2641 < 0.5)`
 
 ---
 
-## 0:45–0:55 — ZK gives this real value (10s)
+## 0:40–0:50 — ZK proof: threshold without revealing score (10s)
 
 - **VO:** "Bob proved he was over the threshold without revealing the score itself. Same primitive scales to private credit, KYC-light DeFi, agent-to-agent payments — anywhere a number must be true but cannot be public."
 - **SCREEN → CLICK:**
   1. Switch back to **Bob**
   2. Click tab **Sword #5 ZK PROOF** → Groth16 proof object + verifier ✓
 - **CALLOUT:** "merit ≥ 0.5 — score never disclosed"
+
+## 0:50–0:55 — Evidence panel: TEE attestation + KH log glance (5s)
+
+- **VO:** "All evidence is cryptographically verified — from TEE compute attestation to on-chain orchestration logs."
+- **SCREEN:** Glance at **Sword #2 TEE** card (compute_hash visible) and brief line from **Sword #3 KH WORKFLOW** log
+- **CLICK:** None (quick visual glance only)
 
 ## 0:55–1:00 — CTA (5s)
 
@@ -74,8 +70,8 @@ Layout: each section gives **(t)** elapsed seconds, **VO** (voice-over),
 ## Operator notes
 
 - **Pre-roll setup (off-camera):** open browser at https://meritscore.warvis.org, refresh once, default agent = Bob. Have a second tab open at the BaseScan link for the demo tx in case judges want proof later.
-- **Tabs in order:** LIVE → UNISWAP (Bob) → AI (Alice) → UNISWAP (Alice, expect 403) → KH (Carol) → ZK (Bob).
-- **Don't click TEE card live** — the attestation hash already shows on Sword #2 panel; a glance is enough. Spending 5s here costs us the ZK section.
+- **Tabs in order:** LIVE → UNISWAP (Bob, 0:10–0:30) → AI (Alice, 0:30–0:40) → UNISWAP glance (Alice 403, quick) → ZK (Bob, 0:40–0:50) → TEE + KH log glance (0:50–0:55).
+- **Carol removed from live demo** — KeeperHub validation takes too long for 60s. TEE + KH log glance covers Swords #2 and #3 in evidence panel.
 - **Quote-only mode if Sepolia faucet drains:** if the live `Execute Swap` reverts during recording, fall back to Quote-only and the existing tx hash overlay (`0x0c7c4...`) — narrate "and that's the tx we landed earlier today".
 - **Dual-resolution OK:** verified end-to-end at 1920x1080 and 1366x768 (`scripts/verify_ui_tabs.py`, 0 console errors, no tab-bar overflow).
 
@@ -85,8 +81,8 @@ Layout: each section gives **(t)** elapsed seconds, **VO** (voice-over),
 |---|---:|---:|
 | Problem | 5 | 5 |
 | MeritScore intro | 5 | 10 |
-| Bob (Uniswap) | 14 | 24 |
-| Alice (AI + 403) | 10 | 34 |
-| Carol (KH) | 11 | 45 |
-| ZK value | 10 | 55 |
+| Bob (merit-gated swap) | 20 | 30 |
+| Alice (AI sandwich detection) | 10 | 40 |
+| ZK proof (threshold without score) | 10 | 50 |
+| Evidence panel (TEE + KH log) | 5 | 55 |
 | CTA | 5 | 60 |
