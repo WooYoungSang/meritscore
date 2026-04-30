@@ -38,8 +38,8 @@ contract AgentLendingPool {
     }
 
     function _ltvFor(uint256 score) internal pure returns (uint256) {
-        if (score >= 800) return 7500;
-        if (score >= 600) return 6000;
+        if (score >= 8000) return 7500;
+        if (score >= 6000) return 6000;
         return 4000;
     }
 
