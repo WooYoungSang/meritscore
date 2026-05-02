@@ -192,30 +192,10 @@ Solidity, Python, TypeScript, FastAPI, React, Foundry, web3.py, snarkjs, circom,
 ## 13. AI Tool Disclosure (paste into the dedicated form field)
 
 ```
-This project was built with AI assistance, in compliance with EthGlobal's
-AI tool policy.
-
-Tools: Claude Code (Anthropic) — Sonnet 4.6 and Opus 4.7 models.
-
-Scope of AI assistance:
-  - Code generation (Python, Solidity, TypeScript, JSX) under TDD discipline
-  - Multi-agent orchestration (planner / executor / verifier / rules-guardian)
-  - Test scaffolding and mock harnesses
-  - Documentation drafting
-
-Human-directed scope:
-  - All architectural decisions, prize-track selection, product framing
-  - All on-chain transactions (wallet signing, contract deployments,
-    live swaps including 0x0c7c4ed5...cdcf897)
-  - All prompts, agent briefs, kill-switch decisions, final commits
-  - All rule-compliance reviews via the independent `rules-guardian` auditor
-
-Verification: every AI-generated change passed pytest + ruff + an
-independent rules-guardian preflight before commit. Live on-chain txs
-were executed and verified by the human submitter.
+Claude Code (Anthropic) was used throughout the project as the primary development agent: smart contract implementation (MeritCore, MeritVault, EvidenceRegistry), FastAPI BFF API, ZK circom circuit design, KeeperHub integration debugging, UI/UX implementation, and technical documentation. Claude.ai (design mode) was used to generate the W.A.R.V.I.S brand identity and logo system. Gemma 4 26B (via Ollama) is integrated as a runtime component for AI sandwich attack detection in agent transaction sequences.
 ```
 
-(This text is mirrored verbatim in `README.md` under "AI Tool Disclosure".)
+(This exact paragraph is mirrored verbatim in `README.md` → "AI Tool Disclosure". Live on-chain transactions, including Sword #6 swap `0x0c7c4ed5...cdcf897`, were executed and verified by the human submitter; every AI-generated change passed `pytest` + `ruff` + an independent `rules-guardian` preflight before commit.)
 
 ---
 

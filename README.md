@@ -654,23 +654,9 @@ Agents can self-declare their mode of operation:
 
 ## AI Tool Disclosure
 
-This project was built with AI assistance, in compliance with EthGlobal's AI tool policy.
+Claude Code (Anthropic) was used throughout the project as the primary development agent: smart contract implementation (MeritCore, MeritVault, EvidenceRegistry), FastAPI BFF API, ZK circom circuit design, KeeperHub integration debugging, UI/UX implementation, and technical documentation. Claude.ai (design mode) was used to generate the W.A.R.V.I.S brand identity and logo system. Gemma 4 26B (via Ollama) is integrated as a runtime component for AI sandwich attack detection in agent transaction sequences.
 
-- **Tools used:** Claude Code (Anthropic) — Sonnet 4.6 and Opus 4.7 models
-- **Scope of AI assistance:**
-  - Code generation (Python, Solidity, TypeScript, JSX) under TDD discipline
-  - Multi-agent orchestration (planner / executor / verifier / rules-guardian)
-  - Test scaffolding and mock harnesses
-  - Documentation drafting (README sections, docstrings, commit messages)
-- **Human-directed scope:**
-  - All architectural decisions, prize-track selection, and product framing
-  - All on-chain transactions (wallet signing, contract deployments, live swaps)
-  - All prompts, agent briefs, kill-switch decisions, and final commits
-  - All rule-compliance reviews via the `rules-guardian` independent auditor
-- **Verification:** Every AI-generated change passed `pytest`, `ruff`, and an independent
-  `rules-guardian` preflight before commit. Live on-chain transactions
-  (e.g., Sword #6 swap [`0x0c7c4e...cdcf897`](https://sepolia.basescan.org/tx/0x0c7c4ed5142950e771c4ac99178764a512bbc5a12f18513b3672b57d7cdcf897))
-  were executed and verified by the human submitter.
+> Verification: every AI-generated change passed `pytest`, `ruff`, and an independent `rules-guardian` preflight before commit. Live on-chain transactions (e.g., Sword #6 swap [`0x0c7c4e...cdcf897`](https://sepolia.basescan.org/tx/0x0c7c4ed5142950e771c4ac99178764a512bbc5a12f18513b3672b57d7cdcf897)) were executed and verified by the human submitter.
 
 ---
 
