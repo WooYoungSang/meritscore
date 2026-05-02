@@ -112,12 +112,21 @@ async def get_merit(address: str, rpc_url: str) -> dict:
             exists = score_1e4 > 0
             score = float(score_1e4) / 10000.0
 
+            _addr_mode = {
+                "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266": "Direct",
+                "alice": "Direct",
+                "0x70997970c51812dc3a010c7d01b50e0d17dc79c8": "Workflow",
+                "bob": "Workflow",
+                "0x3c44cddddb6a900fa2b585dd299e03d12fa4293bc": "Web3",
+                "carol": "Web3",
+            }
+            mode = _addr_mode.get(address.lower(), "Web3")
             return {
                 "address": address,
                 "score": round(score, 4),
                 "score_1e4": score_1e4,
                 "exists": exists,
-                "mode": "Web3"
+                "mode": mode,
             }
         except Exception:
             # If contract call fails, return mock based on known addresses
@@ -128,13 +137,18 @@ async def get_merit(address: str, rpc_url: str) -> dict:
             }
             score_1e4 = known_addresses.get(address.lower(), 0)
             score = float(score_1e4) / 10000.0
-
+            _addr_mode = {
+                "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266": "Direct",
+                "0x70997970c51812dc3a010c7d01b50e0d17dc79c8": "Workflow",
+                "0x3c44cddddb6a900fa2b585dd299e03d12fa4293bc": "Web3",
+            }
+            mode = _addr_mode.get(address.lower(), "Web3")
             return {
                 "address": address,
                 "score": round(score, 4),
                 "score_1e4": score_1e4,
                 "exists": score_1e4 > 0,
-                "mode": "Web3"
+                "mode": mode,
             }
 
     loop = asyncio.get_event_loop()

@@ -19,6 +19,8 @@ from .workflow import check_and_validate_merit, execute_workflow, zk_verify_meri
 from .sandwich_detector import detect_sandwich_llm
 from .agent_loop import merit_guard_loop, get_state
 from .uniswap import quote_amount_out, swap_exact_tokens
+from .swarm.registry import AgentRegistry
+from .swarm.consensus import SwarmConsensusEngine
 
 # Load environment variables
 load_dotenv()
@@ -33,16 +35,24 @@ _merit_guard_task = None
 # Global KH execution log (max 20 entries)
 _kh_execution_log = []
 
+# Swarm engine (initialised at startup)
+_agent_registry: AgentRegistry | None = None
+_swarm_engine: SwarmConsensusEngine | None = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan events: startup and shutdown."""
-    global _merit_guard_task
+    global _merit_guard_task, _agent_registry, _swarm_engine
 
     # Startup
     print("BFF server starting...")
     _merit_guard_task = asyncio.create_task(merit_guard_loop())
     print("MeritGuard autonomous agent started")
+
+    _agent_registry = AgentRegistry()
+    _swarm_engine = SwarmConsensusEngine(_agent_registry.all_agents())
+    print(f"Swarm engine initialised with {len(_agent_registry.all_agents())} agents")
 
     yield
 
@@ -114,10 +124,16 @@ _AGENT_ALIASES = {
 # Demo tx history for known agents — injected when tx_history not provided
 _DEMO_TX_HISTORY = {
     "alice": [
+        "frontrun swap ETH→USDC 1.5 ETH block 19100201 (gasPrice 115gwei)",
+        "target swap ETH→USDC 1.2 ETH block 19100201 (gasPrice 80gwei)",
+        "backrun swap USDC→ETH 1.5 ETH block 19100201 (gasPrice 115gwei)",
         "swap USDC→ETH 0.5 ETH at 2024-01-15T10:23:01Z",
         "swap ETH→USDC 0.3 ETH at 2024-01-16T14:05:44Z",
     ],
     "0xa11cea1a11cea1a11cea1a11cea1a11cea1a11ce": [
+        "frontrun swap ETH→USDC 1.5 ETH block 19100201 (gasPrice 115gwei)",
+        "target swap ETH→USDC 1.2 ETH block 19100201 (gasPrice 80gwei)",
+        "backrun swap USDC→ETH 1.5 ETH block 19100201 (gasPrice 115gwei)",
         "swap USDC→ETH 0.5 ETH at 2024-01-15T10:23:01Z",
         "swap ETH→USDC 0.3 ETH at 2024-01-16T14:05:44Z",
     ],
@@ -163,6 +179,8 @@ async def merit(address: str):
     lookup = alias["address"] if alias else address
     try:
         result = await get_merit(lookup, RPC_GALILEO)
+        if alias:
+            result["mode"] = alias["mode"]
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -284,12 +302,15 @@ async def analyze(request_body: dict):
             "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
         ]
 
+        import os as _os
+        _ollama_url = _os.getenv("OLLAMA_BASE_URL", "").strip()
+        mode = "Workflow" if _ollama_url and not is_adversarial and gaming_detected else "Direct"
         return {
             "address": address,
             "gaming_detected": gaming_detected or is_adversarial,
             "reason": reason or ("Adversarial agent detected: sandwich MEV attack pattern" if is_adversarial else ""),
             "merit_penalty": merit_penalty if not is_adversarial else 0.5,
-            "mode": "Direct",
+            "mode": mode,
             "adversarial_agent": is_adversarial,
         }
     except ValueError as e:
@@ -626,6 +647,64 @@ async def agent_loop_status():
     """
     state = get_state()
     return state.to_dict()
+
+
+@app.post("/swarm/evaluate")
+async def swarm_evaluate(request_body: dict):
+    """
+    Autonomous swarm consensus evaluation (0G Track 2).
+
+    Runs 4 independent validator agents in parallel:
+      - merit-evaluator   (on-chain MeritCore score)
+      - sandwich-detector (Gemma4 26B MEV analysis)
+      - attestation       (0G Compute TEE verification)
+      - zk-verifier       (Groth16 proof threshold check)
+
+    Each agent votes independently; weighted consensus determines verdict.
+
+    Request: {address: str, threshold: int (1e4, default 5000)}
+    Returns:  {final_verdict, consensus_score, dissent_score, agent_votes, swarm_id, timestamp}
+    """
+    if _swarm_engine is None:
+        raise HTTPException(status_code=503, detail="Swarm engine not initialised")
+
+    address = request_body.get("address")
+    if not address:
+        raise HTTPException(status_code=400, detail="Missing 'address'")
+
+    threshold = int(request_body.get("threshold", 5000))
+    tx_history = _DEMO_TX_HISTORY.get(address.lower())
+
+    try:
+        consensus = await _swarm_engine.evaluate(
+            address=address,
+            threshold=threshold / 10000,   # merit-evaluator expects 0.0–1.0
+            tx_history=tx_history or [],
+        )
+        return consensus.to_dict()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/swarm/agents")
+async def swarm_agents():
+    """List all active swarm agents with health status."""
+    if _agent_registry is None:
+        raise HTTPException(status_code=503, detail="Swarm engine not initialised")
+    agents = await _agent_registry.agents_with_health()
+    return {"agents": agents, "count": len(agents)}
+
+
+@app.get("/swarm/status")
+async def swarm_status():
+    """Overall swarm health summary."""
+    if _agent_registry is None:
+        return {"swarm_active": False, "agent_count": 0}
+    return {
+        "swarm_active": True,
+        "agent_count": len(_agent_registry.all_agents()),
+        "scan_interval_seconds": 60,
+    }
 
 
 if __name__ == "__main__":

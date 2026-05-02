@@ -6,7 +6,6 @@ Fallback chain: KH Workflow → direct contract call → PENDING badge
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 from typing import Tuple
@@ -61,16 +60,16 @@ async def _probe_kh_health() -> bool:
         return False
 
 
-async def _call_kh_execute(address: str, threshold: int) -> str:
+async def _call_kh_execute(address: str, threshold: int) -> dict:
     """Trigger KeeperHub workflow via /api/workflows/{id}/webhook.
 
     Returns:
-        "OK" if workflow started (status running/queued).
-        "PENDING" if unreachable or no workflow configured.
+        dict with status "OK" + executionId if workflow started.
+        dict with status "PENDING" if unreachable or not configured.
     """
     if not _KH_WEBHOOK_KEY or not _KH_WORKFLOW_ID:
         logger.info("KH_WEBHOOK_KEY or KH_WORKFLOW_ID not set — returning PENDING")
-        return "PENDING"
+        return {"status": "PENDING"}
 
     base = _KH_BASE_URL.rstrip("/")
     url = f"{base}/api/workflows/{_KH_WORKFLOW_ID}/webhook"
@@ -85,13 +84,14 @@ async def _call_kh_execute(address: str, threshold: int) -> str:
             )
             if resp.status_code < 300:
                 data = resp.json()
-                logger.info("KH webhook OK for %s: %s", address[:10], data)
-                return "OK"
+                execution_id = data.get("executionId", "")
+                logger.info("KH webhook OK for %s: executionId=%s", address[:10], execution_id)
+                return {"status": "OK", "executionId": execution_id, "kh_status": data.get("status", "")}
             logger.warning("KH webhook %s for %s: %s", resp.status_code, address[:10], resp.text[:100])
     except Exception as exc:
         logger.warning("KH webhook error: %s", exc)
 
-    return "PENDING"
+    return {"status": "PENDING"}
 
 
 # ---------------------------------------------------------------------------
@@ -150,6 +150,10 @@ async def zk_verify_merit(address: str, threshold: int) -> dict:
         "0xa11cea1a11cea1a11cea1a11cea1a11cea1a11ce": "alice",
         "0xb0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0": "bob",
         "0xca401ca401ca401ca401ca401ca401ca401ca401": "carol",
+        # Accept short aliases directly
+        "alice": "alice",
+        "bob": "bob",
+        "carol": "carol",
     }
     agent = ADDR_TO_AGENT.get(address.lower(), None)
     if agent is None:
@@ -197,7 +201,7 @@ async def execute_workflow(address: str, threshold: int) -> dict:
 
     Fallback chain:
       1. KH Workflow API (/v1/workflows/execute) with exponential backoff
-      2. If KH_BASE_URL unset or probe fails → return intentionally_simulated dict
+      2. If KH_BASE_URL unset or probe fails → return PENDING dict
 
     Args:
         address: Ethereum address of the agent.
@@ -205,31 +209,34 @@ async def execute_workflow(address: str, threshold: int) -> dict:
 
     Returns:
         dict with status and reason. If KH executes, status="OK".
-        If KH unreachable/unconfirmed, status="intentionally_simulated" with reason.
+        If KH unreachable/unconfirmed, status="PENDING" with reason.
     """
     if not _KH_BASE_URL:
-        logger.info("KH_BASE_URL not configured — EXECUTE returns intentionally_simulated for %s", address[:10])
+        logger.info("KH_BASE_URL not configured — EXECUTE returns PENDING for %s", address[:10])
         return {
-            "status": "intentionally_simulated",
+            "status": "PENDING",
             "reason": "KH webhook endpoint pending public confirmation; CHECK+VALIDATE+ZK_VERIFY produced real proofs above"
         }
 
     # Layer 1: probe health + auth before attempting execute
     health_ok = await _probe_kh_health()
     if not health_ok:
-        logger.warning("KH health probe failed — returning intentionally_simulated for %s", address[:10])
+        logger.warning("KH health probe failed — returning PENDING for %s", address[:10])
         return {
-            "status": "intentionally_simulated",
+            "status": "PENDING",
             "reason": "KH webhook endpoint pending public confirmation; CHECK+VALIDATE+ZK_VERIFY produced real proofs above"
         }
 
     # Layer 2: workflow execute with retry + backoff
-    kh_status = await _call_kh_execute(address, threshold)
-    if kh_status == "OK":
-        return {"status": "OK"}
-    else:
-        # KH call failed or returned PENDING
+    kh_result = await _call_kh_execute(address, threshold)
+    if kh_result.get("status") == "OK":
         return {
-            "status": "intentionally_simulated",
-            "reason": "KH webhook endpoint pending public confirmation; CHECK+VALIDATE+ZK_VERIFY produced real proofs above"
+            "status": "OK",
+            "executionId": kh_result.get("executionId", ""),
+            "kh_status": kh_result.get("kh_status", "running"),
+        }
+    else:
+        return {
+            "status": "PENDING",
+            "reason": "KH webhook unreachable; CHECK+VALIDATE produced real proofs above"
         }

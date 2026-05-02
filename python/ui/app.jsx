@@ -750,8 +750,8 @@ function MeritGuardTab({ agentLoopStatus }) {
               <span style={{ color: a.score < 0.1 ? "#ff4444" : "#ffaa44" }}>{(a.score || 0).toFixed(4)}</span>
               <span style={{ color: "var(--text-mute)" }}>→</span>
               <span style={{ color: "#5ce8ff" }}>{a.action}</span>
-              <span className={`mode-pill ${a.result === "OK" ? "web3" : "direct"}`} style={{ fontSize: 10 }}>
-                {a.result || "PENDING"}
+              <span className={`mode-pill ${a.result?.status === "OK" ? "web3" : "direct"}`} style={{ fontSize: 10 }}>
+                {a.result?.status || (typeof a.result === "string" ? a.result : "PENDING")}
               </span>
             </div>
           ))
@@ -863,6 +863,12 @@ function UniswapSwapTab({ agentMeta }) {
   const [quoteResult, setQuoteResult] = useState(null);
   const [executeResult, setExecuteResult] = useState(null);
   const [error, setError] = useState(null);
+  const [rejectToast, setRejectToast] = useState(null);
+
+  const triggerRejectToast = (merit, threshold) => {
+    setRejectToast({ merit, threshold });
+    setTimeout(() => setRejectToast(null), 3500);
+  };
 
   const TOKENS = {
     WETH: "0x4200000000000000000000000000000000000006",
@@ -912,6 +918,7 @@ function UniswapSwapTab({ agentMeta }) {
       if (!res.ok) {
         if (res.status === 403) {
           setError(`Merit ${data.merit?.toFixed(4)} below threshold ${data.threshold} — swap blocked`);
+          triggerRejectToast(data.merit, data.threshold);
         } else if (res.status === 400) {
           setError(data.detail || "Validation error");
         } else {
@@ -954,6 +961,7 @@ function UniswapSwapTab({ agentMeta }) {
       if (!res.ok) {
         if (res.status === 403) {
           setError(`Merit ${data.merit?.toFixed(4)} below threshold ${data.threshold} — swap blocked`);
+          triggerRejectToast(data.merit, data.threshold);
         } else if (res.status === 502) {
           setError(`Swap reverted on-chain: ${data.reason}`);
         } else if (res.status === 400) {
@@ -975,6 +983,33 @@ function UniswapSwapTab({ agentMeta }) {
 
   return (
     <div className="tab-inner">
+      {rejectToast && (
+        <div style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          zIndex: 10000,
+          background: "linear-gradient(135deg, rgba(255,40,40,0.97), rgba(180,20,20,0.97))",
+          border: "3px solid #ff4444",
+          borderRadius: 14,
+          padding: "32px 56px",
+          textAlign: "center",
+          boxShadow: "0 0 80px rgba(255,68,68,0.6), 0 20px 50px rgba(0,0,0,0.5)",
+          fontFamily: "'JetBrains Mono', monospace",
+          animation: "rejectPulse 0.4s ease-out",
+        }}>
+          <div style={{ fontSize: 56, fontWeight: 800, color: "#fff", letterSpacing: "0.08em", lineHeight: 1 }}>403 REJECTED</div>
+          <div style={{ fontSize: 18, color: "#ffe5e5", marginTop: 14, fontWeight: 600 }}>
+            merit {rejectToast.merit?.toFixed(4)} &lt; {rejectToast.threshold} threshold
+          </div>
+          <div style={{ fontSize: 13, color: "#ffcccc", marginTop: 8, letterSpacing: "0.15em" }}>
+            BELOW THRESHOLD · NO EXCEPTIONS
+          </div>
+          <style>{`@keyframes rejectPulse { 0% { transform: translate(-50%, -50%) scale(0.7); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }`}</style>
+        </div>
+      )}
+
       <div style={{ marginBottom: 16, color: "var(--text-dim)", fontSize: 13 }}>
         <span className="sword">SWORD #6</span> — Merit-gated Uniswap V3 swap on Base Sepolia. Agents with merit ≥ 0.5 can execute swaps with gas-free quote pricing and configurable slippage.
       </div>
@@ -1226,6 +1261,169 @@ function UniswapSwapTab({ agentMeta }) {
 }
 
 // ---------- App ----------
+// ---------- Swarm Consensus Tab (0G Track 2) ----------
+function SwarmTab({ agentMeta }) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [agentList, setAgentList] = useState([]);
+  const [threshold, setThreshold] = useState(5000);
+
+  useEffect(() => {
+    fetch(`${BFF}/swarm/agents`)
+      .then(r => r.json())
+      .then(d => setAgentList(d.agents || []))
+      .catch(e => setError(`Swarm agents unavailable: ${e.message}`));
+  }, []);
+
+  const runSwarm = async () => {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await fetch(`${BFF}/swarm/evaluate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: agentMeta?.id || "bob", threshold }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setResult(await res.json());
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const VERDICT_COLOR = { APPROVE: "#00c851", REJECT: "#ff4444", ABSTAIN: "#ffaa00" };
+  const VERDICT_ICON  = { APPROVE: "✅", REJECT: "❌", ABSTAIN: "⚠️" };
+
+  return (
+    <div className="tab-inner" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ color: "var(--text-dim)", fontSize: "0.75rem", marginBottom: 6 }}>
+          4 autonomous validator agents evaluate <strong style={{ color: "var(--text)" }}>{agentMeta?.id || "bob"}</strong> in parallel and reach weighted consensus.
+        </div>
+        {agentList.length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+            {agentList.map(a => (
+              <span key={a.agent_id} style={{
+                fontSize: "0.65rem", padding: "2px 8px", borderRadius: 4,
+                background: a.healthy ? "rgba(0,200,81,0.12)" : "rgba(255,68,68,0.12)",
+                color: a.healthy ? "#00c851" : "#ff4444",
+                border: `1px solid ${a.healthy ? "rgba(0,200,81,0.3)" : "rgba(255,68,68,0.3)"}`,
+              }}>
+                {a.healthy ? "●" : "○"} {a.agent_id}
+              </span>
+            ))}
+          </div>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <label style={{ color: "var(--text-dim)", fontSize: "0.72rem", whiteSpace: "nowrap" }}>
+            Threshold
+          </label>
+          <input type="range" min="1000" max="9000" step="500" value={threshold}
+            onChange={e => { setThreshold(Number(e.target.value)); setResult(null); }}
+            style={{ flex: 1, accentColor: "var(--accent)" }} />
+          <span style={{ color: "var(--text)", fontSize: "0.78rem", minWidth: 36 }}>
+            {(threshold / 10000).toFixed(2)}
+          </span>
+        </div>
+        <button onClick={runSwarm} disabled={loading} style={{
+          padding: "8px 20px", background: "var(--accent)", color: "#fff",
+          border: "none", borderRadius: 6, cursor: loading ? "wait" : "pointer",
+          fontFamily: "inherit", fontSize: "0.8rem", opacity: loading ? 0.7 : 1,
+        }}>
+          {loading ? "⏳ Evaluating Swarm..." : "▶ Run Swarm Consensus"}
+        </button>
+      </div>
+
+      {error && (
+        <div style={{ color: "#ff4444", fontSize: "0.75rem", padding: 8,
+          background: "rgba(255,68,68,0.08)", borderRadius: 6 }}>
+          Error: {error}
+        </div>
+      )}
+
+      {result && (
+        <div>
+          {/* Verdict banner */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 16, padding: "14px 18px",
+            background: `rgba(${result.final_verdict === "APPROVE" ? "0,200,81" : result.final_verdict === "REJECT" ? "255,68,68" : "255,170,0"}, 0.1)`,
+            border: `1px solid ${VERDICT_COLOR[result.final_verdict]}40`,
+            borderRadius: 8, marginBottom: 14,
+          }}>
+            <span style={{ fontSize: "1.5rem" }}>{VERDICT_ICON[result.final_verdict]}</span>
+            <div>
+              <div style={{ color: VERDICT_COLOR[result.final_verdict], fontWeight: 700, fontSize: "1rem" }}>
+                {result.final_verdict}
+              </div>
+              <div style={{ color: "var(--text-dim)", fontSize: "0.7rem", marginTop: 2 }}>
+                consensus {(result.consensus_score * 100).toFixed(1)}% &nbsp;·&nbsp;
+                dissent {(result.dissent_score * 100).toFixed(1)}% &nbsp;·&nbsp;
+                <span style={{ opacity: 0.6 }}>{result.swarm_id}</span>
+              </div>
+            </div>
+            {result.dissent_score > 0.25 && (
+              <span style={{ marginLeft: "auto", fontSize: "0.65rem", color: "#ffaa00",
+                border: "1px solid #ffaa0040", borderRadius: 4, padding: "2px 7px" }}>
+                ⚠ DISSENT
+              </span>
+            )}
+          </div>
+
+          {/* Agent votes */}
+          <div style={{ color: "var(--text-dim)", fontSize: "0.65rem", marginBottom: 8, letterSpacing: "0.08em" }}>
+            AGENT VOTES ({result.agent_votes.length})
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {result.agent_votes.map((v, i) => (
+              <div key={i} style={{
+                padding: "10px 14px",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                borderLeft: `3px solid ${VERDICT_COLOR[v.verdict]}`,
+                borderRadius: 6,
+                display: "flex", alignItems: "flex-start", gap: 12,
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                    <span style={{ fontWeight: 700, color: "var(--text)", fontSize: "0.78rem" }}>
+                      {v.agent_id}
+                    </span>
+                    <span style={{ color: "var(--text-dim)", fontSize: "0.65rem" }}>
+                      {v.role}
+                    </span>
+                  </div>
+                  <div style={{ color: "var(--text-dim)", fontSize: "0.7rem", lineHeight: 1.4 }}>
+                    {v.reasoning}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{
+                    color: VERDICT_COLOR[v.verdict], fontWeight: 700,
+                    fontSize: "0.75rem", marginBottom: 3,
+                  }}>
+                    {VERDICT_ICON[v.verdict]} {v.verdict}
+                  </div>
+                  <div style={{ color: "var(--text-dim)", fontSize: "0.65rem" }}>
+                    {(v.confidence * 100).toFixed(0)}% conf
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ color: "var(--text-dim)", fontSize: "0.65rem", marginTop: 12, opacity: 0.5 }}>
+            {result.timestamp}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [selectedId, setSelectedId] = useState("bob");
   const [tab, setTab] = useState("live");
@@ -1275,8 +1473,50 @@ function App() {
 
   const pillCls = (ok) => ok === null ? "chain-pill" : ok ? "chain-pill" : "chain-pill offline";
 
+  const selectedScore = scores[selectedId]?.score;
+  const selectedColor = selectedId === "bob" ? "#00d97e" : selectedId === "alice" ? "#ff4444" : "#8b96a5";
+
   return (
     <div>
+      {selected && (
+        <div data-active-agent={selectedId} style={{
+          position: "fixed",
+          top: 16,
+          left: 16,
+          zIndex: 9999,
+          background: "rgba(11, 17, 23, 0.92)",
+          border: `2px solid ${selectedColor}`,
+          borderRadius: 12,
+          padding: "12px 18px",
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          boxShadow: `0 0 24px ${selectedColor}55, 0 8px 24px rgba(0,0,0,0.4)`,
+          backdropFilter: "blur(8px)",
+          fontFamily: "'JetBrains Mono', monospace",
+        }}>
+          <div style={{
+            width: 44,
+            height: 44,
+            borderRadius: "50%",
+            background: `linear-gradient(135deg, ${selectedColor}, ${selectedColor}88)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 800,
+            fontSize: 16,
+            color: "#0b1117",
+            letterSpacing: "0.05em",
+          }}>{selected.initials}</div>
+          <div>
+            <div style={{ fontSize: 11, color: "var(--text-mute)", letterSpacing: "0.15em", textTransform: "uppercase" }}>Active Agent</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginTop: 2 }}>{selected.name}</div>
+            <div style={{ fontSize: 13, color: selectedColor, marginTop: 2, fontWeight: 600 }}>
+              merit {selectedScore !== undefined ? selectedScore.toFixed(4) : "…"}
+            </div>
+          </div>
+        </div>
+      )}
       <header className="header">
         <div className="brand">
           <svg width="56" height="56" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style={{flexShrink: 0}}>
@@ -1403,6 +1643,10 @@ function App() {
             style={agentLoopStatus?.running ? { borderColor: "rgba(0,200,81,0.5)", color: "#00c851" } : {}}>
             🤖 MeritGuard {agentLoopStatus?.running && <span style={{ fontSize: "0.65rem", color: "#00c851" }}>● LIVE</span>}
           </button>
+          <button className={`tab-btn ${tab === "swarm" ? "active" : ""}`} onClick={() => setTab("swarm")}
+            style={tab === "swarm" ? { borderColor: "rgba(139,96,255,0.6)", color: "#8b60ff" } : {}}>
+            🕸 Swarm Consensus <span className="sword" style={{ background: "rgba(139,96,255,0.18)", color: "#8b60ff" }}>TRACK 2</span>
+          </button>
         </div>
         <div className="tab-body">
           {tab === "live" ? <LiveEvalTab /> :
@@ -1411,6 +1655,7 @@ function App() {
            tab === "ai" ? <AIAnalysisTab agentMeta={selected} /> :
            tab === "zk" ? <ZKProofTab agentMeta={selected} /> :
            tab === "uniswap" ? <UniswapSwapTab agentMeta={selected} /> :
+           tab === "swarm" ? <SwarmTab agentMeta={selected} /> :
            <MeritGuardTab agentLoopStatus={agentLoopStatus} />}
         </div>
       </div>

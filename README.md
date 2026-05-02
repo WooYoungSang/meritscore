@@ -8,6 +8,20 @@
 
 ---
 
+## Quick Demo
+
+**Live:** https://meritscore.warvis.org
+
+| Agent | Score | Result |
+|-------|-------|--------|
+| bob | 0.6703 | APPROVED — clean history, Uniswap swap executes |
+| alice | 0.2641 | REJECTED — sandwich MEV pattern detected |
+| carol | 0.0000 | BLOCKED — adversarial agent, all access denied |
+
+Try in 30 seconds: open the URL → click an agent card → hit **EVALUATE**.
+
+---
+
 ## Real vs Fallback Matrix
 
 **How each Sword behaves in production vs graceful degradation:**
@@ -97,6 +111,13 @@ MeritScore solves this with **on-chain agent credit scoring**: a decentralized r
 - Pool: WETH ↔ USDC, fee tier 3000 (with 500 bps fallback)
 - **On-chain proof:** [`0x0c7c4e…cdcf897`](https://sepolia.basescan.org/tx/0x0c7c4ed5142950e771c4ac99178764a512bbc5a12f18513b3672b57d7cdcf897) (0.0001 WETH → 0.015978 USDC)
 - Deep-dive details in the *Sword #6* section below
+
+**Swarm Consensus Engine** ✅ *(0G Track 2: Autonomous Agents & Swarms)*
+- 4 independent validator agents vote in parallel: Merit Evaluator · Sandwich Detector · TEE Attestation · ZK Verifier
+- Confidence-weighted majority determines final verdict (APPROVE / REJECT / ABSTAIN)
+- `POST /swarm/evaluate` — live at meritscore.warvis.org → "🕸 Swarm Consensus" tab
+- Bob → **APPROVE** (consensus 0.55, dissent 0.0) · Carol → **REJECT** (consensus 0.65, dissent 0.0)
+- Source: [`python/bff/swarm/consensus.py`](python/bff/swarm/consensus.py)
 
 ---
 

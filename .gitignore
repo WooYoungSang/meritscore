@@ -36,8 +36,5 @@ pot14_0001.ptau
 pot14_final.ptau
 merit_0000.zkey
 
-# Demo recordings (large binary — store separately)
-docs/demo/*.mp4
-docs/demo/*.webm
-docs/demo/*.wav
-docs/demo/*.mp3
+# Demo artifacts — recordings, narration, frames (large binary, store separately)
+docs/demo/

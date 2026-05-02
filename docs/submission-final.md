@@ -139,9 +139,9 @@ A merit score (0.0 – 1.0) is computed from each agent's behavioral history (sa
 ## 6. Demo video URL
 
 ```
-Video URL: to be added at submission (recording 2026-05-03, upload before 2026-05-04 01:00 KST)
+https://youtu.be/5Lcy74oiV08
 ```
-*(≤ 5 min, public, includes live demo on https://meritscore.warvis.org. Recording scheduled 2026-05-03; live URL preserved through submission deadline 2026-05-04 01:00 KST.)*
+*(3:13 runtime, public, includes live demo on https://meritscore.warvis.org. Live URL preserved through submission deadline 2026-05-04 01:00 KST.)*
 
 ## 7. GitHub URL
 
@@ -168,7 +168,7 @@ Solidity, Python, TypeScript, FastAPI, React, Foundry, web3.py, snarkjs, circom,
 ## 10. Prize tracks
 
 - ☑ **0G — Track 1: Best Agent Framework, Tooling & Core Extensions** ($7,500). MeritCore (Galileo) + IMeritVault interface + AgentLendingPool reference implementation form an open framework other protocols adopt in 3 lines. See [docs/integration-guide.md](integration-guide.md) for 5 worked examples, deployment guide, and operational honesty matrix.
-- ☑ **0G — Track 2: Best Autonomous Agents, Swarms & iNFT Innovations** ($7,500). MeritGuard autonomous validator monitors a 3-agent validation mesh (Bob/Alice/Carol) and relays through a 4-step inter-agent protocol (CHECK→VALIDATE→ZK_VERIFY→EXECUTE) with public evidence log on 0G Storage. See [docs/agent-network.md](agent-network.md) for topology, validator loop, and trust boundaries.
+- ☑ **0G — Track 2: Best Autonomous Agents, Swarms & iNFT Innovations** ($7,500). **4-agent Swarm Consensus Engine** (`POST /swarm/evaluate`): Merit Evaluator, Sandwich Detector (Gemma4 26B), TEE Attestation Verifier, and ZK Proof Validator each vote independently in parallel; confidence-weighted majority determines final verdict. MeritGuard autonomous loop (60s) monitors a 3-agent mesh (Bob/Alice/Carol) via 4-step inter-agent protocol (CHECK→VALIDATE→ZK_VERIFY→EXECUTE). See [docs/agent-network.md](agent-network.md) for topology and [python/bff/swarm/consensus.py](../python/bff/swarm/consensus.py) for consensus algorithm.
 - ☑ **KeeperHub Prize A — Best Use** ($4,500). 4-step workflow with real CHECK + VALIDATE + ZK_VERIFY proofs and honest `intentionally_simulated` labeling on EXECUTE pending KH webhook public confirmation. See [docs/keeperhub-integration.md](keeperhub-integration.md).
 - ☑ **KeeperHub Prize B — Feedback Bounty** ($500). See `KEEPERHUB-FEEDBACK.md` + `docs/kh-feedback-bounty.md` (5 actionable pain points + cross-chain relay schema proposal). Submitted to EthGlobal Discord `#keeperhub` channel before deadline.
 - ☐ Other tracks: review final EthGlobal prize list at submission time and check any track for which we have a real integration — do not over-claim.
@@ -221,12 +221,12 @@ were executed and verified by the human submitter.
 
 ## Pre-submission checklist (run all before clicking "Submit")
 
-- [ ] Demo video uploaded (≤ 5 min) and **public** — recorded 2026-05-03, upload before deadline
+- [x] Demo video uploaded (≤ 5 min) and **public** — https://youtu.be/5Lcy74oiV08 (3:13)
 - [ ] GitHub repo is **public** (https://github.com/WooYoungSang/meritscore)
 - [ ] Live URL responds 200 on `/health` (last-minute uptime check)
 - [ ] Final `rules-guardian` invocation in **submission-gate** mode (not preflight) returns CLEAR
 - [ ] Stake reclaim conditions verified (submission completed before deadline → stake auto-returned per Rule-7)
-- [x] All placeholders in this file are resolved (only the demo video URL is filled at upload time on 2026-05-03)
+- [x] All placeholders in this file are resolved
 - [ ] AI disclosure text in README and submission form match exactly
 - [ ] Live tx hash for Sword #6 is reachable on https://sepolia.basescan.org
 - [ ] No private keys, mnemonics, or `.env` contents on screen in the demo video
